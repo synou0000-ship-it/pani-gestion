@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    font-family: "Times New Roman", Times, Georgia, "Liberation Serif", serif;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-family: "Times New Roman", Times, Georgia, "Liberation Serif", serif;
+  }
+
+  body {
+    font-family: "Times New Roman", Times, Georgia, "Liberation Serif", serif;
+    background-color: #fafafa;
+    color: #1c1917;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, input, optgroup, select, textarea {
+    font-family: "Times New Roman", Times, Georgia, "Liberation Serif", serif;
+  }
+}
+
+/* Scrollbar vitrine minimaliste */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* Mobile safe area support */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Print styling for receipts / ticket de caisse */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-receipt, #printable-receipt * {
+    visibility: visible;
+  }
+  #printable-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    margin: 0;
+    padding: 8px;
+    font-size: 12px;
+  }
+}

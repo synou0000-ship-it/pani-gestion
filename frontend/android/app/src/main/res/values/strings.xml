@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PANI GESTION</string>
+    <string name="title_activity_main">PANI GESTION</string>
+    <string name="package_name">com.panigestion.app</string>
+    <string name="custom_url_scheme">com.panigestion.app</string>
+</resources>

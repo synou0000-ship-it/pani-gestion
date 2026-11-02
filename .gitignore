@@ -1,0 +1,23 @@
+# Dépendances
+node_modules/
+*/node_modules/
+
+# Builds & Binaires
+dist/
+dist-electron/
+frontend/dist/
+frontend/android/app/build/
+frontend/android/.gradle/
+*.apk
+cloudflared.exe
+
+# Environnement & Secrets
+.env
+*/.env
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

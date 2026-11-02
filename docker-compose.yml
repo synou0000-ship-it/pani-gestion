@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pani_postgres
+    environment:
+      POSTGRES_DB: pani_gestion
+      POSTGRES_USER: pani_user
+      POSTGRES_PASSWORD: pani_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pani_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pani_user -d pani_gestion"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pani_backend
+    environment:
+      DATABASE_URL: postgresql://pani_user:pani_pass@postgres:5432/pani_gestion
+      JWT_SECRET: pani_secret_key_change_in_production_2024
+      JWT_EXPIRES_IN: 24h
+      PORT: 5000
+      NODE_ENV: production
+      UPLOAD_DIR: /app/uploads
+    ports:
+      - "5000:5000"
+    volumes:
+      - pani_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pani_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pani_pgdata:
+  pani_uploads:
+

@@ -33,6 +33,7 @@ export const AchatsPage: React.FC = () => {
   const [montantPaye, setMontantPaye] = useState('');
   const [modePaiement, setModePaiement] = useState('especes');
   const [submitting, setSubmitting] = useState(false);
+  const [achatError, setAchatError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -85,6 +86,7 @@ export const AchatsPage: React.FC = () => {
     if (!fournisseurId || !quantite || !prixUnitaire) return;
 
     setSubmitting(true);
+    setAchatError(null);
 
     const defaultProd = produits[0] || { id: 1 };
     const payloadAchat = {
@@ -101,41 +103,44 @@ export const AchatsPage: React.FC = () => {
       }],
     };
 
-    // 1. ENREGISTREMENT LOCAL EN PREMIER (Local-First — stock augmenté immédiatement en local)
-    if (isSQLiteAvailable()) {
-      try {
-        await sqliteCreateLocalAchat(payloadAchat);
-      } catch (sqlErr) {
-        console.error('[Achat] Erreur SQLite local:', sqlErr);
-      }
-    } else {
-      saveOfflineAchat(payloadAchat);
-    }
-
-    // 2. FERMER ET RAFRAÎCHIR IMMÉDIATEMENT
-    setModalOpen(false);
-    setQuantite('100'); setPrixUnitaire('1200'); setMontantPaye('');
-    fetchData();
-    window.dispatchEvent(new Event('pani:data-changed'));
-    setSubmitting(false);
-
-    // 3. SYNCHRO ARRIÈRE-PLAN
-    setTimeout(async () => {
-      try {
-        const res = await api.post('/achats', {
-          fournisseurId: payloadAchat.fournisseurId,
-          statut: statutAchat,
-          montantPaye: payloadAchat.montantPaye,
-          modePaiement,
-          details: [{ produitId: defaultProd.id, quantite: Number(quantite), prixUnitaire: Number(prixUnitaire) }],
-        });
-        if (res.data?.success && isSQLiteAvailable()) {
-          await sqliteUpsertAchat(res.data.data).catch(() => {});
+    // 1. TENTER L'API EN PREMIER
+    try {
+      const res = await api.post('/achats', {
+        fournisseurId: payloadAchat.fournisseurId,
+        statut: statutAchat,
+        montantPaye: payloadAchat.montantPaye,
+        modePaiement,
+        details: [{ produitId: defaultProd.id, quantite: Number(quantite), prixUnitaire: Number(prixUnitaire) }],
+      });
+      if (res.data?.success) {
+        if (isSQLiteAvailable()) {
+          try { await sqliteUpsertAchat(res.data.data); } catch (_) {}
         }
-      } catch (_) {}
-      pushLocalChanges().catch(() => {});
-      fetchData();
-    }, 200);
+        setModalOpen(false);
+        setQuantite('100'); setPrixUnitaire('1200'); setMontantPaye('');
+        await fetchData();
+        window.dispatchEvent(new Event('pani:data-changed'));
+      }
+    } catch (err: any) {
+      const isOfflineErr = !err.response || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK';
+      if (isOfflineErr) {
+        // Mode hors-ligne
+        if (isSQLiteAvailable()) {
+          try { await sqliteCreateLocalAchat(payloadAchat); } catch (_) {}
+        } else {
+          saveOfflineAchat(payloadAchat);
+        }
+        setModalOpen(false);
+        setQuantite('100'); setPrixUnitaire('1200'); setMontantPaye('');
+        await fetchData();
+        window.dispatchEvent(new Event('pani:data-changed'));
+        pushLocalChanges().catch(() => {});
+      } else {
+        setAchatError(err.response?.data?.message || 'Erreur lors de l\'enregistrement de l\'achat');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleReceptionner = async (achatId: number) => {
@@ -267,11 +272,16 @@ export const AchatsPage: React.FC = () => {
       {/* MODAL NOUVEL ACHAT */}
       <Modal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setAchatError(null); }}
         title="Enregistrer un Achat / Approvisionnement"
         maxWidth="md"
       >
         <form onSubmit={handleCreateAchat} className="space-y-4">
+          {achatError && (
+            <div className="p-3 bg-rose-50 text-rose-700 rounded-lg text-xs border border-rose-200">
+              {achatError}
+            </div>
+          )}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Fournisseur *</label>
             <select

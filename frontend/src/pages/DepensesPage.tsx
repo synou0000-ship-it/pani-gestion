@@ -105,52 +105,44 @@ export const DepensesPage: React.FC = () => {
       beneficiaire,
     };
 
-    // 1. ENREGISTREMENT LOCAL EN PREMIER (Local-First)
-    if (isSQLiteAvailable()) {
-      try {
-        await sqliteCreateLocalDepense(depenseData);
-      } catch (sqlErr) {
-        console.error('[Depense] Erreur enregistrement SQLite local:', sqlErr);
+    // 1. TENTER L'API EN PREMIER (envoi JSON direct, plus fiable)
+    try {
+      const res = await api.post('/depenses', depenseData);
+      if (res.data?.success) {
+        setCreateModalOpen(false);
+        setDescription('');
+        setMontant('');
+        setBeneficiaire('');
+        setFiles(null);
+        await fetchDepenses();
+        window.dispatchEvent(new Event('pani:data-changed'));
       }
-    } else {
-      saveOfflineDepense(depenseData);
-    }
-
-    // 2. FERMER LE MODAL ET RAFRAÎCHIR IMMÉDIATEMENT
-    setCreateModalOpen(false);
-    setDescription('');
-    setMontant('');
-    setBeneficiaire('');
-    setFiles(null);
-    fetchDepenses();
-    window.dispatchEvent(new Event('pani:data-changed'));
-
-    // 3. SYNCHRONISATION EN ARRIÈRE-PLAN (tente d'envoyer au serveur)
-    setTimeout(async () => {
-      try {
-        const formData = new FormData();
-        formData.append('categorie', depenseData.categorie);
-        formData.append('description', depenseData.description);
-        formData.append('montant', String(depenseData.montant));
-        formData.append('modePaiement', depenseData.modePaiement);
-        if (depenseData.beneficiaire) formData.append('beneficiaire', depenseData.beneficiaire);
-
-        const res = await api.post('/depenses', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        if (res.data?.success) {
-          if (isSQLiteAvailable()) sqliteUpsertDepense(res.data.data);
-          // Vider la file d'attente locale si synchro réussie
-          pushLocalChanges().catch(() => {});
+    } catch (err: any) {
+      const isOfflineErr = !err.response || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK';
+      if (isOfflineErr) {
+        // Mode hors-ligne : enregistrement local
+        if (isSQLiteAvailable()) {
+          try {
+            await sqliteCreateLocalDepense(depenseData);
+          } catch (_) {}
+        } else {
+          saveOfflineDepense(depenseData);
         }
-      } catch (_) {
-        // Hors-ligne — les données restent dans la file locale, pushLocalChanges s'en occupera
+        setCreateModalOpen(false);
+        setDescription('');
+        setMontant('');
+        setBeneficiaire('');
+        setFiles(null);
+        await fetchDepenses();
+        window.dispatchEvent(new Event('pani:data-changed'));
         pushLocalChanges().catch(() => {});
+      } else {
+        // Erreur serveur explicite
+        setErrorMsg(err.response?.data?.message || 'Erreur lors de l\'enregistrement de la dépense');
       }
-      fetchDepenses();
-    }, 200);
-
-    setSubmitting(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const totalDepenses = depenses.reduce((acc, d) => acc + Number(d.montant), 0);

@@ -16,6 +16,7 @@ import {
   History,
   SlidersHorizontal,
   Plus,
+  CheckCircle,
 } from 'lucide-react';
 
 export const StockPage: React.FC = () => {
@@ -32,10 +33,14 @@ export const StockPage: React.FC = () => {
   const [ajustementQte, setAjustementQte] = useState<string>('');
   const [ajustementMotif, setAjustementMotif] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Form nouveau tarif
   const [nouveauTarifDesignation, setNouveauTarifDesignation] = useState('');
   const [nouveauTarifPrix, setNouveauTarifPrix] = useState('');
+  const [tarifError, setTarifError] = useState<string | null>(null);
+  const [tarifSuccess, setTarifSuccess] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -83,6 +88,7 @@ export const StockPage: React.FC = () => {
   const handleAjustement = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ajustementQte || Number(ajustementQte) <= 0) return;
+    if (!ajustementMotif.trim()) return;
 
     setSubmitting(true);
 
@@ -93,27 +99,35 @@ export const StockPage: React.FC = () => {
       motif: ajustementMotif,
     };
 
-    // 1. ENREGISTREMENT LOCAL EN PREMIER
-    if (isSQLiteAvailable()) {
-      try {
-        await sqliteCreateLocalAjustement(ajustData);
-      } catch (_) {}
+    // 1. TENTER L'API EN PREMIER (avec feedback utilisateur)
+    try {
+      await api.post('/stock/ajustement', ajustData);
+      setModalAjustementOpen(false);
+      setAjustementQte('');
+      setAjustementMotif('');
+      await fetchData();
+      window.dispatchEvent(new Event('pani:data-changed'));
+    } catch (err: any) {
+      // 2. Si le serveur est inaccessible → enregistrement local
+      const isOfflineErr = !err.response || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK';
+      if (isOfflineErr) {
+        if (isSQLiteAvailable()) {
+          try {
+            await sqliteCreateLocalAjustement(ajustData);
+          } catch (_) {}
+        }
+        setModalAjustementOpen(false);
+        setAjustementQte('');
+        setAjustementMotif('');
+        await fetchData();
+        pushLocalChanges().catch(() => {});
+      } else {
+        // Erreur serveur : afficher le message
+        alert(err.response?.data?.message || 'Erreur lors de l\'ajustement de stock');
+      }
+    } finally {
+      setSubmitting(false);
     }
-
-    // 2. FERMER ET RAFRAÎCHIR
-    setModalAjustementOpen(false);
-    setAjustementQte('');
-    setAjustementMotif('');
-    fetchData();
-    setSubmitting(false);
-
-    // 3. SYNCHRO ARRIÈRE-PLAN
-    setTimeout(async () => {
-      try {
-        await api.post('/stock/ajustement', ajustData);
-      } catch (_) {}
-      pushLocalChanges().catch(() => {});
-    }, 200);
   };
 
   const handleCreerTarif = async (e: React.FormEvent) => {
@@ -123,33 +137,44 @@ export const StockPage: React.FC = () => {
     setSubmitting(true);
 
     const defaultProd = stockList[0];
+    if (!defaultProd) {
+      alert('Aucun produit disponible pour associer ce tarif.');
+      setSubmitting(false);
+      return;
+    }
+
     const tarifData = {
       produitId: defaultProd?.produitId || 1,
       designation: nouveauTarifDesignation,
       prix: Number(nouveauTarifPrix),
     };
 
-    // 1. ENREGISTREMENT LOCAL EN PREMIER
-    if (isSQLiteAvailable()) {
-      try {
-        await sqliteCreateLocalTarif(tarifData);
-      } catch (_) {}
+    // 1. TENTER L'API EN PREMIER
+    try {
+      await api.post('/produits/tarifs', tarifData);
+      setModalNouveauTarifOpen(false);
+      setNouveauTarifDesignation('');
+      setNouveauTarifPrix('');
+      await fetchData();
+    } catch (err: any) {
+      const isOfflineErr = !err.response || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK';
+      if (isOfflineErr) {
+        if (isSQLiteAvailable()) {
+          try {
+            await sqliteCreateLocalTarif(tarifData);
+          } catch (_) {}
+        }
+        setModalNouveauTarifOpen(false);
+        setNouveauTarifDesignation('');
+        setNouveauTarifPrix('');
+        await fetchData();
+        pushLocalChanges().catch(() => {});
+      } else {
+        alert(err.response?.data?.message || 'Erreur lors de la création du tarif');
+      }
+    } finally {
+      setSubmitting(false);
     }
-
-    // 2. FERMER ET RAFRAÎCHIR
-    setModalNouveauTarifOpen(false);
-    setNouveauTarifDesignation('');
-    setNouveauTarifPrix('');
-    fetchData();
-    setSubmitting(false);
-
-    // 3. SYNCHRO ARRIÈRE-PLAN
-    setTimeout(async () => {
-      try {
-        await api.post('/produits/tarifs', tarifData);
-      } catch (_) {}
-      pushLocalChanges().catch(() => {});
-    }, 200);
   };
 
   const getOperationBadge = (type: string) => {

@@ -35,11 +35,13 @@ export const FournisseursPage: React.FC = () => {
   const [telephone, setTelephone] = useState('');
   const [adresse, setAdresse] = useState('');
   const [email, setEmail] = useState('');
+  const [fournisseurError, setFournisseurError] = useState<string | null>(null);
 
   // Form Paiement
   const [montantPaiement, setMontantPaiement] = useState('');
   const [modePaiement, setModePaiement] = useState('especes');
   const [notesPaiement, setNotesPaiement] = useState('');
+  const [paiementError, setPaiementError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchFournisseurs = async () => {
@@ -105,6 +107,7 @@ export const FournisseursPage: React.FC = () => {
     if (!nom.trim()) return;
 
     setSubmitting(true);
+    setFournisseurError(null);
     try {
       const res = await api.post('/fournisseurs', {
         nom,
@@ -123,7 +126,20 @@ export const FournisseursPage: React.FC = () => {
         fetchFournisseurs();
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur création fournisseur');
+      const isOfflineErr = !err.response || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK';
+      if (isOfflineErr) {
+        // Enregistrement hors-ligne dans localStorage
+        try {
+          const cached = JSON.parse(localStorage.getItem('pani_offline_fournisseurs_pending') || '[]');
+          cached.push({ nom, contact, telephone, adresse, email, localId: Date.now() });
+          localStorage.setItem('pani_offline_fournisseurs_pending', JSON.stringify(cached));
+        } catch (_) {}
+        setCreateModalOpen(false);
+        setNom(''); setContact(''); setTelephone(''); setAdresse(''); setEmail('');
+        fetchFournisseurs();
+      } else {
+        setFournisseurError(err.response?.data?.message || 'Erreur lors de la création du fournisseur');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -134,6 +150,7 @@ export const FournisseursPage: React.FC = () => {
     if (!selectedFournisseur || !montantPaiement || Number(montantPaiement) <= 0) return;
 
     setSubmitting(true);
+    setPaiementError(null);
     try {
       const res = await api.post(`/fournisseurs/${selectedFournisseur.id}/paiements`, {
         montant: Number(montantPaiement),
@@ -147,7 +164,7 @@ export const FournisseursPage: React.FC = () => {
         fetchFournisseurs();
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur lors du paiement');
+      setPaiementError(err.response?.data?.message || 'Erreur lors du paiement');
     } finally {
       setSubmitting(false);
     }
@@ -302,11 +319,16 @@ export const FournisseursPage: React.FC = () => {
       {/* MODAL CRÉER FOURNISSEUR */}
       <Modal
         isOpen={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        onClose={() => { setCreateModalOpen(false); setFournisseurError(null); }}
         title="Ajouter un Fournisseur"
         maxWidth="md"
       >
         <form onSubmit={handleCreateFournisseur} className="space-y-4">
+          {fournisseurError && (
+            <div className="p-3 bg-rose-50 text-rose-700 rounded-lg text-xs border border-rose-200">
+              {fournisseurError}
+            </div>
+          )}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">Nom Entreprise / Fournisseur *</label>
             <input
@@ -367,11 +389,16 @@ export const FournisseursPage: React.FC = () => {
       {/* MODAL PAIEMENT FOURNISSEUR */}
       <Modal
         isOpen={paiementModalOpen}
-        onClose={() => setPaiementModalOpen(false)}
+        onClose={() => { setPaiementModalOpen(false); setPaiementError(null); }}
         title={`Règlement Dette Fournisseur: ${selectedFournisseur?.nom || ''}`}
         maxWidth="md"
       >
         <form onSubmit={handlePaiementFournisseur} className="space-y-4">
+          {paiementError && (
+            <div className="p-3 bg-rose-50 text-rose-700 rounded-lg text-xs border border-rose-200">
+              {paiementError}
+            </div>
+          )}
           <div className="p-3 bg-slate-100 rounded-lg text-xs flex justify-between items-center">
             <span className="text-slate-600 font-semibold">Dette totale due :</span>
             <span className="font-bold text-slate-900 text-sm">{formatFCFA(selectedFournisseur?.totalDette)}</span>

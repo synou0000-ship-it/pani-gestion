@@ -37,11 +37,13 @@ export const ClientsPage: React.FC = () => {
   const [telephone, setTelephone] = useState('');
   const [adresse, setAdresse] = useState('');
   const [typeClient, setTypeClient] = useState('particulier');
+  const [clientError, setClientError] = useState<string | null>(null);
 
   // Form Paiement
   const [montantPaiement, setMontantPaiement] = useState('');
   const [modePaiement, setModePaiement] = useState('especes');
   const [notesPaiement, setNotesPaiement] = useState('');
+  const [paiementError, setPaiementError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const fetchClients = async () => {
@@ -90,35 +92,39 @@ export const ClientsPage: React.FC = () => {
     if (!nom.trim()) return;
 
     setSubmitting(true);
+    setClientError(null);
     const clientPayload = { nom, prenom, telephone, adresse, typeClient };
 
-    // 1. ENREGISTREMENT LOCAL EN PREMIER (Local-First)
-    if (isSQLiteAvailable()) {
-      try {
-        await sqliteCreateLocalClient(clientPayload);
-      } catch (sqlErr) {
-        console.error('[Client] Erreur SQLite local:', sqlErr);
-      }
-    } else {
-      saveOfflineClient(clientPayload);
-    }
-
-    // 2. FERMER LE MODAL ET RAFRAÎCHIR
-    setCreateModalOpen(false);
-    setNom(''); setPrenom(''); setTelephone(''); setAdresse('');
-    fetchClients();
-    setSubmitting(false);
-
-    // 3. TENTATIVE SYNCHRO ARRIÈRE-PLAN
-    setTimeout(async () => {
-      try {
-        const res = await api.post('/clients', clientPayload);
-        if (res.data?.success && isSQLiteAvailable()) {
-          sqliteUpsertClient(res.data.data);
+    // 1. TENTER L'API EN PREMIER
+    try {
+      const res = await api.post('/clients', clientPayload);
+      if (res.data?.success) {
+        if (isSQLiteAvailable()) {
+          try { await sqliteUpsertClient(res.data.data); } catch (_) {}
         }
-      } catch (_) {}
-      pushLocalChanges().catch(() => {});
-    }, 200);
+        setCreateModalOpen(false);
+        setNom(''); setPrenom(''); setTelephone(''); setAdresse('');
+        await fetchClients();
+      }
+    } catch (err: any) {
+      const isOfflineErr = !err.response || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK';
+      if (isOfflineErr) {
+        // Mode hors-ligne : enregistrement local
+        if (isSQLiteAvailable()) {
+          try { await sqliteCreateLocalClient(clientPayload); } catch (_) {}
+        } else {
+          saveOfflineClient(clientPayload);
+        }
+        setCreateModalOpen(false);
+        setNom(''); setPrenom(''); setTelephone(''); setAdresse('');
+        await fetchClients();
+        pushLocalChanges().catch(() => {});
+      } else {
+        setClientError(err.response?.data?.message || 'Erreur lors de la création du client');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handlePaiementDette = async (e: React.FormEvent) => {
@@ -126,6 +132,7 @@ export const ClientsPage: React.FC = () => {
     if (!selectedClient || !montantPaiement || Number(montantPaiement) <= 0) return;
 
     setSubmitting(true);
+    setPaiementError(null);
     try {
       const res = await api.post(`/clients/${selectedClient.id}/paiements`, {
         montant: Number(montantPaiement),
@@ -139,7 +146,7 @@ export const ClientsPage: React.FC = () => {
         fetchClients();
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Erreur enregistrement paiement');
+      setPaiementError(err.response?.data?.message || 'Erreur enregistrement paiement');
     } finally {
       setSubmitting(false);
     }
@@ -300,11 +307,16 @@ export const ClientsPage: React.FC = () => {
       {/* MODAL CRÉER CLIENT */}
       <Modal
         isOpen={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        onClose={() => { setCreateModalOpen(false); setClientError(null); }}
         title="Ajouter une Fiche Client"
         maxWidth="md"
       >
         <form onSubmit={handleCreateClient} className="space-y-4">
+          {clientError && (
+            <div className="p-3 bg-rose-50 text-rose-700 rounded-lg text-xs border border-rose-200">
+              {clientError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Nom *</label>
@@ -379,11 +391,16 @@ export const ClientsPage: React.FC = () => {
       {/* MODAL PAIEMENT DE DETTE */}
       <Modal
         isOpen={paiementModalOpen}
-        onClose={() => setPaiementModalOpen(false)}
+        onClose={() => { setPaiementModalOpen(false); setPaiementError(null); }}
         title={`Règlement Dette: ${selectedClient?.nom || ''}`}
         maxWidth="md"
       >
         <form onSubmit={handlePaiementDette} className="space-y-4">
+          {paiementError && (
+            <div className="p-3 bg-rose-50 text-rose-700 rounded-lg text-xs border border-rose-200">
+              {paiementError}
+            </div>
+          )}
           <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-xs flex justify-between items-center">
             <span className="text-amber-800 font-semibold">Dette totale actuelle :</span>
             <span className="font-bold text-amber-950 text-sm">{formatFCFA(selectedClient?.totalDette)}</span>

@@ -87,13 +87,15 @@ app.use('/api/sync', syncRoutes);
 // Middleware de gestion globale des erreurs
 app.use(errorHandler);
 
-// Démarrer le serveur sur toutes les interfaces IPv4 (0.0.0.0) pour l'accès mobile/Wi-Fi
-const server = app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`===============================================`);
-  console.log(`  PANI GESTION API démarrée sur le port ${PORT}`);
-  console.log(`  URL: http://0.0.0.0:${PORT}`);
-  console.log(`  Santé: http://localhost:${PORT}/api/health`);
-  console.log(`===============================================`);
-});
+// Démarrer le serveur uniquement en local (pas sur Vercel serverless)
+if (!process.env.VERCEL) {
+  const server = app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`===============================================`);
+    console.log(`  PANI GESTION API démarrée sur le port ${PORT}`);
+    console.log(`  URL: http://0.0.0.0:${PORT}`);
+    console.log(`  Santé: http://localhost:${PORT}/api/health`);
+    console.log(`===============================================`);
+  });
+}
 
 export default app;

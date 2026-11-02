@@ -7,6 +7,7 @@
     "dev": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend run dev",
+    "build": "cd frontend && npm install --legacy-peer-deps && npm run build",
     "start": "cmd /c demarrer.bat",
     "build:apk": "cmd /c build-android.bat"
   }

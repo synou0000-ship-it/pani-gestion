@@ -1238,4 +1238,33 @@ export async function sqliteGetPendingCount(): Promise<number> {
   return (resV.values?.[0]?.c || 0) + (resC.values?.[0]?.c || 0) + (resD.values?.[0]?.c || 0) + (resA.values?.[0]?.c || 0);
 }
 
+// =====================================================
+// RÉINITIALISATION COMPLÈTE — EFFACE TOUT LE SQLite LOCAL
+// Utilisé lors d'un changement de serveur ou d'une réinitialisation manuelle
+// =====================================================
+
+export async function sqliteDropAllData(): Promise<void> {
+  if (!db) return;
+  const tables = [
+    'inventaire_details', 'inventaires',
+    'mouvements_caisse', 'mouvements_stock',
+    'achat_details', 'achats',
+    'depenses',
+    'paiements_clients',
+    'vente_details', 'ventes',
+    'caisses',
+    'tarifs', 'produits',
+    'fournisseurs', 'clients',
+    'utilisateurs', 'roles',
+  ];
+  for (const table of tables) {
+    try {
+      await db.run(`DELETE FROM ${table}`);
+    } catch (_) { /* table peut ne pas exister */ }
+  }
+  // Réinitialiser les séquences auto-increment
+  try { await db.run("DELETE FROM sqlite_sequence"); } catch (_) {}
+  console.log('[SQLite] 🗑️ Toutes les données locales effacées — prêt pour re-synchronisation depuis le Cloud');
+}
+
 export { db };

@@ -30,6 +30,7 @@ import {
   sqliteUpsertDepense,
   sqliteUpsertAchat,
   sqliteGetPendingCount,
+  sqliteDropAllData,
 } from './sqlite';
 
 export interface SyncStatus {
@@ -321,6 +322,94 @@ export function stopAutoSync(): void {
   if (autoSyncInterval) {
     clearInterval(autoSyncInterval);
     autoSyncInterval = null;
+  }
+}
+
+/**
+ * RÉINITIALISATION TOTALE DEPUIS LE CLOUD
+ * 1. Efface toutes les données SQLite locales (obsolètes)
+ * 2. Efface le cache localStorage
+ * 3. Re-pull TOUT depuis PostgreSQL (Vercel Cloud)
+ * À utiliser quand le smartphone affiche des données différentes du PC
+ */
+export async function forceFullResetSync(): Promise<boolean> {
+  if (syncStatus.isSyncing) return false;
+
+  const token = localStorage.getItem('pani_token');
+  if (!token) return false;
+
+  syncStatus.isSyncing = true;
+  syncStatus.error = null;
+  notifyListeners();
+
+  try {
+    console.log('[Sync] 🔄 RÉINITIALISATION TOTALE — Effacement des données locales...');
+
+    // 1. Effacer SQLite local si disponible
+    if (isSQLiteAvailable()) {
+      await sqliteDropAllData();
+      console.log('[Sync] ✅ SQLite local vidé');
+    }
+
+    // 2. Effacer le cache localStorage (pani_cache_*)
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('pani_cache_') || key === 'pani_last_sync_time' || key.startsWith('pani_offline_'))) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    console.log('[Sync] ✅ Cache localStorage effacé (' + keysToRemove.length + ' entrées)');
+
+    // 3. Re-pull complet depuis PostgreSQL (sans filtre de date)
+    localStorage.removeItem('pani_last_sync_time');
+    const res = await api.get('/sync/pull');
+
+    if (!res.data?.success || !res.data?.data) {
+      throw new Error('Échec du pull depuis le serveur Cloud');
+    }
+
+    const data = res.data.data;
+    console.log(`[Sync] PULL COMPLET: ${data.produits?.length || 0} produits, ${data.ventes?.length || 0} ventes, ${data.clients?.length || 0} clients`);
+
+    // 4. Insérer toutes les données fraîches dans SQLite
+    if (isSQLiteAvailable()) {
+      if (data.roles) for (const r of data.roles) await sqliteUpsertRole(r);
+      if (data.utilisateurs) for (const u of data.utilisateurs) await sqliteUpsertUtilisateur(u);
+      if (data.produits) for (const p of data.produits) await sqliteUpsertProduit(p);
+      if (data.tarifs) for (const t of data.tarifs) await sqliteUpsertTarif(t);
+      if (data.clients) for (const c of data.clients) await sqliteUpsertClient(c);
+      if (data.fournisseurs) for (const f of data.fournisseurs) await sqliteUpsertFournisseur(f);
+      if (data.caisses) for (const c of data.caisses) await sqliteUpsertCaisse(c);
+      if (data.ventes) for (const v of data.ventes) await sqliteUpsertVente(v);
+      if (data.depenses) for (const d of data.depenses) await sqliteUpsertDepense(d);
+      if (data.achats) for (const a of data.achats) await sqliteUpsertAchat(a);
+    }
+
+    if (data.serverTime) {
+      localStorage.setItem('pani_last_sync_time', data.serverTime);
+      syncStatus.lastSyncTime = data.serverTime;
+    }
+
+    syncStatus.isSyncing = false;
+    syncStatus.pendingCount = 0;
+    syncStatus.isOnline = true;
+    syncStatus.error = null;
+    notifyListeners();
+
+    // Déclencher le rechargement de toutes les pages
+    window.dispatchEvent(new Event('pani:data-changed'));
+    console.log('[Sync] ✅ RÉINITIALISATION COMPLÈTE TERMINÉE — Données identiques au Cloud');
+    return true;
+
+  } catch (err: any) {
+    syncStatus.isSyncing = false;
+    syncStatus.error = err.message || 'Erreur lors de la réinitialisation';
+    syncStatus.isOnline = false;
+    notifyListeners();
+    console.error('[Sync] ❌ Échec réinitialisation:', err.message);
+    return false;
   }
 }
 

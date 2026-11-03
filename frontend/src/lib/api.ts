@@ -50,6 +50,17 @@ const EXPIRED_TUNNEL_PATTERNS = [
 ];
 
 export function getDefaultServerURL(): string {
+  // Sur Vercel Web (domaine *.vercel.app) : toujours utiliser /api relatif
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    const saved = localStorage.getItem('pani_server_url');
+    if (saved && (saved.startsWith('http://') || saved.includes('localhost') || saved.includes('192.168.'))) {
+      localStorage.removeItem('pani_server_url');
+    } else if (saved && saved.startsWith('https://')) {
+      return cleanServerURL(saved);
+    }
+    return '/api';
+  }
+
   // 1. Si déjà personnalisé par l'utilisateur
   const saved = localStorage.getItem('pani_server_url');
   if (saved) {
@@ -103,7 +114,7 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 4000,
+  timeout: 15000,
 });
 
 // Intercepteur pour injecter le token JWT et s'assurer de la bonne baseURL

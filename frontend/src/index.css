@@ -48,10 +48,10 @@
 
 /* Mobile safe area support */
 .safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: max(8px, env(safe-area-inset-top, 8px));
 }
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
 }
 
 /* Print styling for receipts / ticket de caisse */

@@ -304,7 +304,7 @@ export const NouvelleVentePage: React.FC = () => {
   const produitPrincipal = produits[0] || { nom: 'Pani', tarifs: [] };
 
   return (
-    <div className="space-y-4 sm:space-y-5 pb-16 lg:pb-0">
+    <div className="space-y-4 sm:space-y-5 pb-32 lg:pb-0">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -389,41 +389,80 @@ export const NouvelleVentePage: React.FC = () => {
                 <button
                   key={tarif.id}
                   onClick={() => addTarifToCart(tarif, produitPrincipal)}
-                  className="p-4 rounded-xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 transition-all text-left group shadow-sm active:scale-95"
+                  className="p-3 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 active:scale-95 transition-all text-left group shadow-xs overflow-hidden"
                 >
-                  <div className="text-xs font-semibold uppercase tracking-wider text-slate-600">{tarif.designation}</div>
-                  <div className="text-2xl font-black text-slate-900 mt-1">{formatFCFA(tarif.prix)}</div>
-                  <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                    <Plus className="h-3 w-3" /> Ajouter
+                  <div className="text-[10px] font-serif uppercase tracking-widest text-slate-700 font-bold truncate" title={tarif.designation}>
+                    {tarif.designation}
+                  </div>
+                  <div className="text-xl font-bold font-serif text-slate-900 mt-0.5 truncate">
+                    {formatFCFA(tarif.prix)}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1 font-serif font-semibold">
+                    <Plus className="h-2.5 w-2.5" /> 1 unité
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* Saisie Prix Libre / Spécifique (> 2000 F ou autre) */}
-            <div className="mt-6 pt-5 border-t border-slate-100">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3">
-                Prix Libre ou Spécifique
-              </h4>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  placeholder="Prix unitaire en F CFA (ex: 2500)"
-                  value={customPrice}
-                  onChange={(e) => setCustomPrice(e.target.value)}
-                  className="flex-1 px-3.5 py-2.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
-                <input
-                  type="number"
-                  min="1"
-                  value={customQte}
-                  onChange={(e) => setCustomQte(parseInt(e.target.value) || 1)}
-                  className="w-20 px-3 py-2.5 text-sm text-center border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  title="Quantité"
-                />
-                <Button variant="secondary" size="md" onClick={addCustomPriceToCart}>
-                  Ajouter
-                </Button>
+            {/* Saisie Prix Libre / Spécifique (> 2000 F ou autre) - 100% Responsive et Anti-Débordement */}
+            <div className="mt-5 pt-4 border-t border-slate-200/80">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Prix Libre ou Spécifique
+                </h4>
+                <span className="text-[10px] text-slate-500 italic">Saisie manuelle</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+                {/* Champ Prix unitaire */}
+                <div className="relative flex-1 min-w-0">
+                  <input
+                    type="number"
+                    placeholder="Montant en F CFA (ex: 2500)"
+                    value={customPrice}
+                    onChange={(e) => setCustomPrice(e.target.value)}
+                    className="w-full px-3.5 py-2.5 text-sm font-serif border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white shadow-2xs"
+                  />
+                </div>
+
+                {/* Sélecteur de Quantité + Bouton Ajouter */}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center border border-slate-300 rounded-lg bg-slate-50 overflow-hidden shadow-2xs shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCustomQte(Math.max(1, customQte - 1))}
+                      className="px-2.5 py-2 text-slate-600 hover:bg-slate-200 active:bg-slate-300 font-bold text-sm"
+                      aria-label="Diminuer la quantité"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      value={customQte}
+                      onChange={(e) => setCustomQte(parseInt(e.target.value) || 1)}
+                      className="w-12 text-center text-sm font-bold bg-white border-x border-slate-200 py-2 focus:outline-none font-serif"
+                      title="Quantité"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setCustomQte(customQte + 1)}
+                      className="px-2.5 py-2 text-slate-600 hover:bg-slate-200 active:bg-slate-300 font-bold text-sm"
+                      aria-label="Augmenter la quantité"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addCustomPriceToCart}
+                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-serif font-bold text-sm shadow-sm transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Ajouter</span>
+                  </button>
+                </div>
               </div>
             </div>
           </Card>
@@ -622,13 +661,13 @@ export const NouvelleVentePage: React.FC = () => {
 
       {/* Sticky Bottom Bar de validation - Mobile uniquement (< lg) lorsque le panier contient des articles */}
       {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-14 left-0 right-0 z-25 bg-white/98 backdrop-blur-md border-t border-neutral-200 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] px-4 py-2.5">
-          <div className="flex items-center justify-between gap-3">
+        <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-20 bg-white/98 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] px-4 py-2.5">
+          <div className="flex items-center justify-between gap-3 max-w-lg mx-auto">
             <div>
-              <div className="text-[10px] font-serif uppercase tracking-widest text-neutral-500">
+              <div className="text-[10px] font-serif uppercase tracking-widest text-slate-500 font-bold">
                 Total ({totalUnites} art.)
               </div>
-              <div className="text-lg font-bold font-serif text-neutral-900 leading-tight">
+              <div className="text-lg font-bold font-serif text-slate-900 leading-tight">
                 {formatFCFA(totalMontant)}
               </div>
             </div>
@@ -637,7 +676,7 @@ export const NouvelleVentePage: React.FC = () => {
               size="md"
               onClick={handleValiderVente}
               isLoading={loading}
-              className="text-xs font-serif font-medium py-2 px-4 shrink-0 shadow-xs"
+              className="text-xs font-serif font-bold py-2.5 px-4 shrink-0 shadow-sm"
             >
               Encaisser {formatFCFA(payeNum)}
             </Button>

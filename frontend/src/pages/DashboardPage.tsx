@@ -191,29 +191,8 @@ export const DashboardPage: React.FC = () => {
 
   const fetchDashboard = async (p = periode) => {
     // ═══════════════════════════════════════════════════════════
-    // 1. AFFICHAGE IMMÉDIAT (0 ms) — Local-First absolu
-    // ═══════════════════════════════════════════════════════════
-    if (isSQLiteAvailable()) {
-      // Android APK : SQLite contient l'intégralité des données locales
-      try {
-        const sqlStats = await sqliteGetDashboardStats(p);
-        if (sqlStats) {
-          setData(sqlStats);
-          setLoading(false);
-        }
-      } catch (e) {
-        console.error('[Dashboard] SQLite pre-load error:', e);
-      }
-    } else {
-      // Navigateur Web : Baseline serveur + file d'attente offline
-      const baseline = getBaselineDashboard(p);
-      const merged = mergeWithOfflineQueue(baseline, p);
-      setData(merged);
-      setLoading(false);
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // 2. TENTATIVE SERVEUR EN ARRIÈRE-PLAN
+    // STRATÉGIE : Serveur Cloud d'abord (PC + Mobile identiques)
+    // SQLite = UNIQUEMENT si le serveur est inaccessible (hors-ligne réel)
     // ═══════════════════════════════════════════════════════════
     try {
       const res = await api.get(`/dashboard?periode=${p}`);
@@ -224,10 +203,14 @@ export const DashboardPage: React.FC = () => {
           (res as any).isFromCache === true;
 
         if (isFromCache) {
-          // Serveur inaccessible, axios a renvoyé son cache statique
+          // Serveur inaccessible → fallback SQLite/cache
           setIsOffline(true);
-          if (!isSQLiteAvailable()) {
-            // Sur Web, on réapplique TOUJOURS les ventes hors-ligne locales sur ce cache
+          if (isSQLiteAvailable()) {
+            try {
+              const sqlStats = await sqliteGetDashboardStats(p);
+              if (sqlStats) setData(sqlStats);
+            } catch (_) {}
+          } else {
             const merged = mergeWithOfflineQueue(res.data.data, p);
             setData(merged);
           }
@@ -235,33 +218,37 @@ export const DashboardPage: React.FC = () => {
           return;
         }
 
-        // Le serveur en ligne a répondu !
+        // ✅ Serveur Cloud en ligne → données identiques PC et mobile
         setIsOffline(false);
         try {
           localStorage.setItem('pani_offline_dashboard', JSON.stringify(res.data.data));
         } catch (_) {}
 
-        if (isSQLiteAvailable()) {
-          // Sur mobile : si des éléments locaux sont en attente de synchronisation, on garde SQLite
-          const pending = await sqliteGetPendingCount();
-          if (pending > 0) {
-            console.log(`[Dashboard] ${pending} élément(s) SQLite en attente, conservation de l'affichage local`);
-            return;
-          }
-          setData(res.data.data);
-        } else {
-          // Sur Web : fusionner les transactions locales résiduelles (si le push n'est pas fini)
-          const merged = mergeWithOfflineQueue(res.data.data, p);
-          setData(merged);
-        }
+        // Fusionner les ventes locales non encore synchronisées
+        const merged = mergeWithOfflineQueue(res.data.data, p);
+        // Marquer explicitement isFromSQLite = false car données viennent du serveur
+        setData({ ...merged, isFromSQLite: false });
         setLoading(false);
         return;
       }
     } catch (_err) {
-      console.warn('[Dashboard] Serveur inaccessible — affichage local maintenu.');
+      console.warn('[Dashboard] Serveur inaccessible — fallback local.');
       setIsOffline(true);
     }
 
+    // Fallback : SQLite (mobile hors-ligne) ou cache localStorage (PC hors-ligne)
+    if (isSQLiteAvailable()) {
+      try {
+        const sqlStats = await sqliteGetDashboardStats(p);
+        if (sqlStats) setData(sqlStats);
+      } catch (e) {
+        console.error('[Dashboard] SQLite fallback error:', e);
+      }
+    } else {
+      const baseline = getBaselineDashboard(p);
+      const merged = mergeWithOfflineQueue(baseline, p);
+      setData(merged);
+    }
     setLoading(false);
   };
 
@@ -297,8 +284,8 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-5 font-serif">
 
-      {/* Bannière Mode Hors-ligne */}
-      {(isOffline || data?.isFromSQLite) && (
+      {/* Bannière Mode Hors-ligne — uniquement si serveur inaccessible */}
+      {isOffline && (
         <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 flex items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-2 text-amber-900 text-xs sm:text-sm font-serif font-medium">
             <WifiOff className="h-4 w-4 text-amber-700 shrink-0" />

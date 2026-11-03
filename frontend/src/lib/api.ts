@@ -1,4 +1,27 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
+
+export const PRODUCTION_CLOUD_URL = 'https://pani-gestion.vercel.app/api';
+
+// Détection précise et fiable de l'environnement natif Android / iOS (Capacitor APK)
+export function isNativePlatform(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (Capacitor.isNativePlatform()) return true;
+    const plat = Capacitor.getPlatform();
+    if (plat === 'android' || plat === 'ios') return true;
+  } catch (_) {}
+
+  // Dans la WebView Android de Capacitor :
+  // Le protocole est http/https et hostname est 'localhost' sans port personnalisé (ex: 5173 en dev)
+  if (window.location.hostname === 'localhost' && (!window.location.port || window.location.port === '' || window.location.port === '80' || window.location.port === '443')) {
+    return true;
+  }
+  if (window.location.protocol === 'capacitor:' || window.location.protocol === 'ionic:' || window.location.protocol === 'file:') {
+    return true;
+  }
+  return false;
+}
 
 // Nettoyer et normaliser l'URL du serveur API
 export function cleanServerURL(raw: string): string {
@@ -22,12 +45,11 @@ export function cleanServerURL(raw: string): string {
   // 4. Si aucun port n'est spécifié après l'IP ou le nom d'hôte (ex: http://192.168.1.100)
   try {
     const parsed = new URL(url);
-    if (!parsed.port && parsed.hostname !== 'localhost' && !parsed.hostname.includes('.com') && !parsed.hostname.includes('.org')) {
+    if (!parsed.port && parsed.hostname !== 'localhost' && !parsed.hostname.includes('.com') && !parsed.hostname.includes('.org') && !parsed.hostname.includes('.app')) {
       parsed.port = '5000';
       url = parsed.toString().replace(/\/+$/, '');
     }
   } catch (_e) {
-    // Si URL() échoue, continuer avec un regex
     if (!/:\d+/.test(url)) {
       url = url.replace(/^(https?:\/\/[^\/]+)/, '$1:5000');
     }
@@ -41,8 +63,7 @@ export function cleanServerURL(raw: string): string {
   return url;
 }
 
-// Déterminer l'URL de base du backend
-// URLs de tunnels expirés à ignorer automatiquement
+// URLs de tunnels expirés ou anciennes adresses locales obsolètes
 const EXPIRED_TUNNEL_PATTERNS = [
   'fortune-dose-historical-manufacturing',
   'effect-kits-reg-gnome',
@@ -50,7 +71,7 @@ const EXPIRED_TUNNEL_PATTERNS = [
 ];
 
 export function getDefaultServerURL(): string {
-  // Sur Vercel Web (domaine *.vercel.app) : toujours utiliser /api relatif
+  // 1. Sur Vercel Web (domaine *.vercel.app) : toujours utiliser /api relatif
   if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
     const saved = localStorage.getItem('pani_server_url');
     if (saved && (saved.startsWith('http://') || saved.includes('localhost') || saved.includes('192.168.'))) {
@@ -61,43 +82,77 @@ export function getDefaultServerURL(): string {
     return '/api';
   }
 
-  // 1. Détection environnement Android Capacitor (Native uniquement)
-  const isNativeCapacitor = typeof window !== 'undefined' && (
-    (window as any).Capacitor?.isNativePlatform?.() === true ||
-    window.location.protocol === 'capacitor:'
-  );
+  // 2. Sur Smartphone APK Android (Capacitor) :
+  // Le Cloud Vercel est LE serveur obligatoire pour partager la même base PostgreSQL
+  if (isNativePlatform()) {
+    const saved = localStorage.getItem('pani_server_url');
+    if (saved) {
+      // Purger immédiatement les anciennes IPs locales (192.168.x, localhost, etc.)
+      const isObsolete =
+        saved.includes('192.168.') ||
+        saved.includes('localhost') ||
+        saved.includes(':5000') ||
+        saved.includes(':5173') ||
+        EXPIRED_TUNNEL_PATTERNS.some((p) => saved.includes(p));
 
-  // 2. Si déjà personnalisé par l'utilisateur
-  const saved = localStorage.getItem('pani_server_url');
-  if (saved) {
-    // Si l'ancienne valeur locale 192.168.1.100 ou un tunnel expiré était enregistré sur Android, basculer sur Vercel Cloud
-    if (isNativeCapacitor && (saved.includes('192.168.') || saved.includes('localhost') || EXPIRED_TUNNEL_PATTERNS.some(p => saved.includes(p)))) {
-      localStorage.removeItem('pani_server_url');
-      return 'https://pani-gestion.vercel.app/api';
-    }
-    const isExpired = EXPIRED_TUNNEL_PATTERNS.some(p => saved.includes(p));
-    if (isExpired) {
-      localStorage.removeItem('pani_server_url');
-      console.warn('[API] Ancienne URL de tunnel expirée effacée :', saved);
-      // Continue vers la détection automatique ci-dessous
-    } else {
-      const cleaned = cleanServerURL(saved);
-      if (cleaned && cleaned !== saved) {
-        localStorage.setItem('pani_server_url', cleaned);
+      if (isObsolete) {
+        localStorage.removeItem('pani_server_url');
+        console.log('[API] Ancienne IP locale effacée sur smartphone -> retour Cloud Vercel');
+        return PRODUCTION_CLOUD_URL;
       }
-      return cleaned || 'https://pani-gestion.vercel.app/api';
+      return cleanServerURL(saved) || PRODUCTION_CLOUD_URL;
     }
+    return PRODUCTION_CLOUD_URL;
   }
 
-  // Sur APK Android natif : pointer par défaut vers le serveur Vercel Cloud en production
-  if (isNativeCapacitor) {
-    return 'https://pani-gestion.vercel.app/api';
-  }
-
-  // Sur navigateur web (PC local ou smartphone sur http://192.168.1.100:5173) :
-  // Utiliser le proxy Vite /api par défaut
+  // 3. En développement PC web (ex: Vite proxy)
   return (import.meta as any).env?.VITE_API_URL || '/api';
 }
+
+// Nettoyage automatique au démarrage pour garantir la synchronisation avec PostgreSQL
+export function performInitialCleanup(): void {
+  if (typeof window === 'undefined') return;
+
+  const isNative = isNativePlatform();
+  const savedUrl = localStorage.getItem('pani_server_url');
+
+  if (savedUrl && (savedUrl.includes('192.168.') || savedUrl.includes('localhost') || savedUrl.includes(':5000') || EXPIRED_TUNNEL_PATTERNS.some(p => savedUrl.includes(p)))) {
+    localStorage.removeItem('pani_server_url');
+    console.log('[API] URL locale obsolète purgée');
+  }
+
+  // Si l'utilisateur est coincé dans une fausse session hors-ligne "Administrateur Local"
+  const token = localStorage.getItem('pani_token');
+  const user = localStorage.getItem('pani_user');
+  if (token && token.startsWith('offline_token_')) {
+    localStorage.removeItem('pani_token');
+    localStorage.removeItem('pani_user');
+    console.log('[API] Fausse session hors-ligne purgée');
+  } else if (user && (user.includes('Administrateur Local') || user.includes('Mode Hors-Ligne'))) {
+    localStorage.removeItem('pani_token');
+    localStorage.removeItem('pani_user');
+  }
+
+  // Sur smartphone APK : vider les anciens caches obsolètes qui affichaient des données périmées
+  if (isNative) {
+    localStorage.removeItem('pani_offline_dashboard');
+    localStorage.removeItem('pani_pending_count');
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith('pani_cache_') || k === 'pani_last_sync_time')) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+    if (keysToRemove.length > 0) {
+      console.log(`[API] ${keysToRemove.length} caches obsolètes supprimés sur smartphone`);
+    }
+  }
+}
+
+// Exécuter immédiatement
+performInitialCleanup();
 
 export function setServerURL(url: string): string {
   const cleanUrl = cleanServerURL(url);

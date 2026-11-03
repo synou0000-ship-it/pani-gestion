@@ -125,14 +125,10 @@ export const LoginPage: React.FC = () => {
         return;
       }
 
-      // Serveur inaccessible (hors-ligne, tunnel expiré, coupure réseau...)
-      // BASCULEMENT AUTOMATIQUE IMMÉDIAT EN MODE HORS-LIGNE
-      console.log('[Login] Serveur inaccessible -> basculement automatique en mode hors-ligne');
-      const ok = handleOfflineLogin();
-      if (!ok) {
-        setError('Impossible de joindre le serveur. Pour vous connecter hors-ligne, utilisez admin@pani.com / Admin123!');
-        setShowOfflineOption(true);
-      }
+      // Serveur inaccessible (problème réseau ou hors-ligne)
+      console.log('[Login] Impossible de joindre le serveur Cloud :', err.message);
+      setError(`Impossible de contacter le serveur Cloud (${cleanServerURL(serverUrl)}). Vérifiez votre connexion Internet (Wi-Fi ou données mobiles 4G/5G).`);
+      setShowOfflineOption(true);
     } finally {
       setLoading(false);
     }

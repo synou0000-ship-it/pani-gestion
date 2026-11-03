@@ -158,10 +158,10 @@ export const AchatsPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Achats & Réceptions</h1>
-          <p className="text-xs text-slate-500">
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Achats & Réceptions</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">
             Enregistrement des approvisionnements et entrées en stock
           </p>
         </div>
@@ -171,8 +171,10 @@ export const AchatsPage: React.FC = () => {
           size="sm"
           onClick={() => setModalOpen(true)}
           icon={<PlusCircle className="h-4 w-4" />}
+          className="shrink-0 font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3.5"
         >
-          Nouvel Achat
+          <span className="hidden sm:inline">Nouvel Achat</span>
+          <span className="sm:hidden">Achat</span>
         </Button>
       </div>
 

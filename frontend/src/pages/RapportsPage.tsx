@@ -81,30 +81,32 @@ export const RapportsPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Rapports & Statistiques</h1>
-          <p className="text-xs text-slate-500">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Rapports & Statistiques</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">
             Rapport journalier, synthèse mensuelle, détection des manques et exports
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => handleExportExcel(activeTab)}
             icon={<FileSpreadsheet className="h-4 w-4 text-emerald-600" />}
+            className="flex-1 sm:flex-initial justify-center font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3"
           >
-            Export Excel
+            Excel
           </Button>
           <Button
             variant="secondary"
             size="sm"
             onClick={handlePrint}
             icon={<Printer className="h-4 w-4" />}
+            className="flex-1 sm:flex-initial justify-center font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3 shadow-xs"
           >
-            Imprimer / PDF
+            Imprimer
           </Button>
         </div>
       </div>

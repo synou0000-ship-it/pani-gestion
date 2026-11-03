@@ -116,21 +116,23 @@ export const CaissePage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Gestion de la Caisse</h1>
-          <p className="text-xs text-slate-500">Ouverture, clôture, comptage physique et contrôle des écarts</p>
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Gestion de la Caisse</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">Ouverture, clôture, comptage physique et contrôle des écarts</p>
         </div>
 
-        <div>
+        <div className="shrink-0">
           {caisseActuelle ? (
             <Button
               variant="danger"
               size="sm"
               onClick={() => setCloturerModalOpen(true)}
               icon={<Lock className="h-4 w-4" />}
+              className="font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3.5"
             >
-              Clôturer la Caisse
+              <span className="hidden sm:inline">Clôturer la Caisse</span>
+              <span className="sm:hidden">Clôturer</span>
             </Button>
           ) : (
             <Button
@@ -138,8 +140,10 @@ export const CaissePage: React.FC = () => {
               size="sm"
               onClick={() => setOuvrirModalOpen(true)}
               icon={<Unlock className="h-4 w-4" />}
+              className="font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3.5"
             >
-              Ouvrir une Caisse
+              <span className="hidden sm:inline">Ouvrir une Caisse</span>
+              <span className="sm:hidden">Ouvrir</span>
             </Button>
           )}
         </div>

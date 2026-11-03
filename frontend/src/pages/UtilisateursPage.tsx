@@ -103,10 +103,10 @@ export const UtilisateursPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Utilisateurs & Rôles</h1>
-          <p className="text-xs text-slate-500">
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Utilisateurs & Rôles</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">
             Gestion des 5 profils : Administrateur, Gestionnaire, Vendeur, Caissier, Comptable
           </p>
         </div>
@@ -116,8 +116,10 @@ export const UtilisateursPage: React.FC = () => {
           size="sm"
           onClick={() => setModalOpen(true)}
           icon={<PlusCircle className="h-4 w-4" />}
+          className="shrink-0 font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3.5"
         >
-          Nouvel Utilisateur
+          <span className="hidden sm:inline">Nouvel Utilisateur</span>
+          <span className="sm:hidden">Utilisateur</span>
         </Button>
       </div>
 

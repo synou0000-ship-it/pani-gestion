@@ -151,10 +151,10 @@ export const DepensesPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Gestion des Dépenses</h1>
-          <p className="text-xs text-slate-500">Enregistrement des charges d'exploitation et contrôle des justificatifs</p>
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Gestion des Dépenses</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">Enregistrement des charges d'exploitation et contrôle des justificatifs</p>
         </div>
 
         <Button
@@ -162,8 +162,10 @@ export const DepensesPage: React.FC = () => {
           size="sm"
           onClick={() => setCreateModalOpen(true)}
           icon={<PlusCircle className="h-4 w-4" />}
+          className="shrink-0 font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3.5"
         >
-          Nouvelle Dépense
+          <span className="hidden sm:inline">Nouvelle Dépense</span>
+          <span className="sm:hidden">Dépense</span>
         </Button>
       </div>
 

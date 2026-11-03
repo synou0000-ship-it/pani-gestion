@@ -170,10 +170,10 @@ export const ClientsPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Clients & Dettes</h1>
-          <p className="text-xs text-slate-500">
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Clients & Dettes</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">
             Fichier clients, suivi des ventes à crédit et encaissements des dettes
           </p>
         </div>
@@ -183,8 +183,10 @@ export const ClientsPage: React.FC = () => {
           size="sm"
           onClick={() => setCreateModalOpen(true)}
           icon={<PlusCircle className="h-4 w-4" />}
+          className="shrink-0 font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3.5"
         >
-          Nouveau Client
+          <span className="hidden sm:inline">Nouveau Client</span>
+          <span className="sm:hidden">Client</span>
         </Button>
       </div>
 

@@ -306,27 +306,61 @@ export const DashboardPage: React.FC = () => {
         </div>
       )}
 
-      {/* Header & Filtres Vitrine */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 border-b border-slate-200">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-serif text-slate-900 tracking-tight">
-            Tableau de Bord
-          </h1>
-          <p className="text-xs font-serif text-slate-500 italic">
-            Synthèse d'activité commerciale, situation de caisse et état des stocks
-          </p>
+      {/* Header & Filtres Vitrine - 100% Responsive et Anti-Débordement Mobile */}
+      <div className="flex flex-col gap-3 pb-2.5 border-b border-slate-200">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-serif text-slate-900 tracking-tight truncate">
+              Tableau de Bord
+            </h1>
+            <p className="text-xs font-serif text-slate-500 italic hidden sm:block">
+              Synthèse d'activité commerciale, situation de caisse et état des stocks
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Sélecteur de période Desktop (masqué sur mobile) */}
+            <div className="hidden sm:inline-flex rounded-md border border-slate-300 bg-white p-0.5 shadow-xs">
+              {(['jour', 'semaine', 'mois', 'annee'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriode(p)}
+                  className={`px-3 py-1 text-xs font-serif capitalize transition-colors rounded ${
+                    periode === p
+                      ? 'bg-emerald-700 text-white font-semibold shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  {p === 'jour' ? "Aujourd'hui" : p}
+                </button>
+              ))}
+            </div>
+
+            <Link to="/ventes/nouvelle" className="shrink-0">
+              <Button
+                variant="primary"
+                size="sm"
+                icon={<PlusCircle className="h-4 w-4" />}
+                className="font-serif font-bold text-xs sm:text-sm shadow-xs whitespace-nowrap min-h-[40px] px-3.5"
+              >
+                Nouvelle Vente
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Sélecteur de période */}
-          <div className="inline-flex rounded-md border border-slate-300 bg-white p-0.5 shadow-xs">
+        {/* Sélecteur de période Mobile (4 colonnes égales, pleine largeur, aucun débordement) */}
+        <div className="sm:hidden w-full">
+          <div className="grid grid-cols-4 w-full rounded-lg border border-slate-300 bg-white p-0.5 shadow-2xs">
             {(['jour', 'semaine', 'mois', 'annee'] as const).map((p) => (
               <button
                 key={p}
+                type="button"
                 onClick={() => setPeriode(p)}
-                className={`px-3 py-1 text-xs font-serif capitalize transition-colors rounded ${
+                className={`py-2 text-[11px] font-serif capitalize transition-colors rounded-md text-center font-bold ${
                   periode === p
-                    ? 'bg-emerald-700 text-white font-semibold shadow-xs'
+                    ? 'bg-emerald-700 text-white shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
@@ -334,45 +368,43 @@ export const DashboardPage: React.FC = () => {
               </button>
             ))}
           </div>
-
-          <Link to="/ventes/nouvelle">
-            <Button variant="primary" size="sm" icon={<PlusCircle className="h-4 w-4" />}>
-              Nouvelle Vente
-            </Button>
-          </Link>
         </div>
       </div>
 
-      {/* Bannière de session de caisse - Couleurs Distinctes */}
+      {/* Bannière de session de caisse - Couleurs Distinctes & Adaptée Mobile */}
       {data?.caisse ? (
-        <div className="bg-emerald-50/80 border border-emerald-300/80 rounded-lg p-3.5 sm:p-4 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-600 text-white rounded-md shadow-xs">
+        <div className="bg-emerald-50/80 border border-emerald-300/80 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 bg-emerald-600 text-white rounded-lg shadow-xs shrink-0">
               <Landmark className="h-5 w-5" />
             </div>
-            <div>
-              <div className="text-xs sm:text-sm font-bold font-serif text-emerald-950">
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-bold font-serif text-emerald-950 truncate">
                 Session de Caisse : {data.caisse.reference}
               </div>
               <div className="text-[11px] font-serif text-emerald-800">
-                Ouverte par {data.caisse.ouvertPar} • Solde théorique :{' '}
+                Ouverte par <span className="font-semibold">{data.caisse.ouvertPar}</span> • Solde :{' '}
                 <span className="font-bold text-emerald-950 not-italic text-xs">{formatFCFA(data.caisse.soldeTheorique)}</span>
               </div>
             </div>
           </div>
-          <Link to="/caisse">
-            <Button variant="outline" size="xs" className="border-emerald-300 text-emerald-800 hover:bg-emerald-100">
+          <Link to="/caisse" className="w-full sm:w-auto shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full sm:w-auto border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-serif font-bold text-xs py-2 min-h-[38px] justify-center"
+            >
               Gérer la caisse
             </Button>
           </Link>
         </div>
       ) : (
-        <div className="bg-amber-50/80 border border-amber-300/80 rounded-lg p-3.5 sm:p-4 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-600 text-white rounded-md shadow-xs">
+        <div className="bg-amber-50/80 border border-amber-300/80 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 bg-amber-600 text-white rounded-lg shadow-xs shrink-0">
               <AlertTriangle className="h-5 w-5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-xs sm:text-sm font-bold font-serif text-amber-950">
                 Aucune session de caisse ouverte
               </div>
@@ -381,8 +413,12 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <Link to="/caisse">
-            <Button variant="primary" size="xs">
+          <Link to="/caisse" className="w-full sm:w-auto shrink-0">
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full sm:w-auto font-serif font-bold text-xs py-2 min-h-[38px] justify-center shadow-xs"
+            >
               Ouvrir la caisse
             </Button>
           </Link>

@@ -197,25 +197,27 @@ export const StockPage: React.FC = () => {
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Gestion des Stocks</h1>
-          <p className="text-xs text-slate-500">Niveaux de stock, mouvements et gestion des tarifs</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Gestion des Stocks</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">Niveaux de stock, mouvements et gestion des tarifs</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setModalNouveauTarifOpen(true)}
             icon={<Plus className="h-3.5 w-3.5" />}
+            className="flex-1 sm:flex-initial justify-center font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3"
           >
-            Nouveau Tarif
+            + Tarif
           </Button>
           <Button
             variant="primary"
             size="sm"
             onClick={() => setModalAjustementOpen(true)}
             icon={<SlidersHorizontal className="h-3.5 w-3.5" />}
+            className="flex-1 sm:flex-initial justify-center font-serif font-bold text-xs sm:text-sm whitespace-nowrap min-h-[40px] px-3 shadow-xs"
           >
             Ajuster Stock
           </Button>

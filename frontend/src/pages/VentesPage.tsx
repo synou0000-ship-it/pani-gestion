@@ -107,13 +107,18 @@ export const VentesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Historique des Ventes</h1>
-          <p className="text-xs text-slate-500">Tickets émis, règlements et gestion des annulations</p>
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">Historique des Ventes</h1>
+          <p className="text-xs text-slate-500 hidden sm:block">Tickets émis, règlements et gestion des annulations</p>
         </div>
-        <Link to="/ventes/nouvelle">
-          <Button variant="primary" size="sm" icon={<PlusCircle className="h-4 w-4" />}>
+        <Link to="/ventes/nouvelle" className="shrink-0">
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<PlusCircle className="h-4 w-4" />}
+            className="font-serif font-bold text-xs sm:text-sm shadow-xs whitespace-nowrap min-h-[40px] px-3.5"
+          >
             Nouvelle Vente
           </Button>
         </Link>

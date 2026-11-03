@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import {
   getDepenses,
   getDepenseById,
@@ -10,9 +11,14 @@ import {
 } from '../controllers/depensesController';
 import { verifyToken, requireRole } from '../middleware/auth';
 
-const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+const isVercel = Boolean(process.env.VERCEL);
+const uploadDir = process.env.UPLOAD_DIR || (isVercel ? path.join(os.tmpdir(), 'pani-uploads') : path.join(process.cwd(), 'uploads'));
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  } catch (err) {
+    console.warn('[Depenses] Dossier upload non créé (lecture seule) :', err);
+  }
 }
 
 const storage = multer.diskStorage({
@@ -40,4 +46,3 @@ router.get('/:id', getDepenseById);
 router.post('/:id/justificatif', upload.single('justificatif'), addJustificatif);
 
 export default router;
-

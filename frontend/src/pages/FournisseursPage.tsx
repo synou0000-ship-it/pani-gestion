@@ -375,11 +375,11 @@ export const FournisseursPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setCreateModalOpen(false)}>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button variant="outline" size="md" type="button" onClick={() => setCreateModalOpen(false)}>
               Annuler
             </Button>
-            <Button variant="primary" size="sm" type="submit" isLoading={submitting}>
+            <Button variant="primary" size="md" type="submit" isLoading={submitting} className="font-bold shadow-sm">
               Enregistrer
             </Button>
           </div>
@@ -429,11 +429,11 @@ export const FournisseursPage: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setPaiementModalOpen(false)}>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button variant="outline" size="md" type="button" onClick={() => setPaiementModalOpen(false)}>
               Annuler
             </Button>
-            <Button variant="danger" size="sm" type="submit" isLoading={submitting}>
+            <Button variant="danger" size="md" type="submit" isLoading={submitting} className="font-bold shadow-sm">
               Valider le paiement
             </Button>
           </div>

@@ -42,31 +42,32 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-full items-end sm:items-center justify-center p-0 sm:p-4 text-center">
+      {/* Centré sur mobile et desktop avec marge de sécurité pour ne jamais chevaucher la barre Android */}
+      <div className="flex min-h-full items-center justify-center p-3.5 sm:p-5 text-center">
         {/* Backdrop */}
         <div
           className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
           onClick={onClose}
         />
 
-        {/* Modal Panel (Bottom sheet on mobile, centered dialog on desktop) */}
+        {/* Modal Panel - Carte flottante élégante centrée, coins arrondis complets, ombre douce */}
         <div
-          className={`relative transform overflow-hidden rounded-t-xl sm:rounded-xl bg-white text-left shadow-lg transition-all w-full ${maxWidthStyles[maxWidth]} border border-neutral-200 font-serif animate-in fade-in zoom-in-95 duration-150`}
+          className={`relative transform rounded-2xl sm:rounded-xl bg-white text-left shadow-2xl transition-all w-full ${maxWidthStyles[maxWidth]} border border-neutral-200 font-serif my-auto overflow-hidden animate-in fade-in zoom-in-95 duration-150`}
         >
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-neutral-200 px-4 sm:px-5 py-3 bg-neutral-50/50">
+          <div className="flex items-center justify-between border-b border-neutral-200 px-4 sm:px-5 py-3.5 bg-neutral-50/70">
             <h3 className="text-sm sm:text-base font-bold font-serif text-neutral-900 tracking-wide">{title}</h3>
             <button
               onClick={onClose}
-              className="rounded-lg p-1 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition-colors"
+              className="rounded-lg p-2 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 active:scale-95 transition-all"
               aria-label="Fermer"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </button>
           </div>
 
-          {/* Content */}
-          <div className="p-4 sm:p-5 max-h-[85vh] overflow-y-auto">{children}</div>
+          {/* Content - Défilement fluide et marge basse généreuse pour des boutons toujours 100% accessibles */}
+          <div className="p-4 sm:p-5 pb-6 sm:pb-6 max-h-[75vh] sm:max-h-[80vh] overflow-y-auto">{children}</div>
         </div>
       </div>
     </div>

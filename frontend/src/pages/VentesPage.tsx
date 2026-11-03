@@ -357,16 +357,17 @@ export const VentesPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
               <Button
                 variant="outline"
-                size="sm"
+                size="md"
                 onClick={() => window.print()}
                 icon={<Printer className="h-4 w-4" />}
+                className="font-serif font-bold text-sm"
               >
                 Imprimer Ticket
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => setSelectedVente(null)}>
+              <Button variant="secondary" size="md" onClick={() => setSelectedVente(null)} className="font-serif font-bold text-sm shadow-sm">
                 Fermer
               </Button>
             </div>
@@ -400,16 +401,17 @@ export const VentesPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setAnnulerModalOpen(false)}>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button variant="outline" size="md" onClick={() => setAnnulerModalOpen(false)}>
               Annuler
             </Button>
             <Button
               variant="danger"
-              size="sm"
+              size="md"
               onClick={handleAnnulerVente}
               isLoading={actionLoading}
               disabled={!motifAnnulation.trim()}
+              className="font-bold shadow-sm"
             >
               Confirmer l'annulation
             </Button>

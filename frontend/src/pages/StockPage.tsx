@@ -413,11 +413,11 @@ export const StockPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setModalAjustementOpen(false)}>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button variant="outline" size="md" type="button" onClick={() => setModalAjustementOpen(false)}>
               Annuler
             </Button>
-            <Button variant="primary" size="sm" type="submit" isLoading={submitting}>
+            <Button variant="primary" size="md" type="submit" isLoading={submitting} className="font-bold shadow-sm">
               Enregistrer l'ajustement
             </Button>
           </div>
@@ -461,11 +461,11 @@ export const StockPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setModalNouveauTarifOpen(false)}>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button variant="outline" size="md" type="button" onClick={() => setModalNouveauTarifOpen(false)}>
               Annuler
             </Button>
-            <Button variant="primary" size="sm" type="submit" isLoading={submitting}>
+            <Button variant="primary" size="md" type="submit" isLoading={submitting} className="font-bold shadow-sm">
               Créer le Tarif
             </Button>
           </div>

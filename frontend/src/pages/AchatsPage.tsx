@@ -362,11 +362,11 @@ export const AchatsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" type="button" onClick={() => setModalOpen(false)}>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button variant="outline" size="md" type="button" onClick={() => setModalOpen(false)}>
               Annuler
             </Button>
-            <Button variant="primary" size="sm" type="submit" isLoading={submitting}>
+            <Button variant="primary" size="md" type="submit" isLoading={submitting} className="font-bold shadow-sm">
               Valider l'achat
             </Button>
           </div>

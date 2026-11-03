@@ -772,20 +772,22 @@ export const NouvelleVentePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Boutons d'action */}
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            {/* Boutons d'action - Confortables et faciles à cliquer */}
+            <div className="grid grid-cols-2 gap-3 pt-3">
               <Button
                 variant="outline"
-                size="sm"
+                size="md"
                 onClick={handlePrint}
-                icon={<Printer className="h-3.5 w-3.5" />}
+                icon={<Printer className="h-4 w-4" />}
+                className="w-full font-serif font-bold text-sm"
               >
                 Imprimer
               </Button>
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 onClick={() => setVenteReussie(null)}
+                className="w-full font-serif font-bold text-sm shadow-sm"
               >
                 Nouvelle Vente
               </Button>

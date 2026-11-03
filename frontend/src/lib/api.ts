@@ -61,10 +61,20 @@ export function getDefaultServerURL(): string {
     return '/api';
   }
 
-  // 1. Si déjà personnalisé par l'utilisateur
+  // 1. Détection environnement Android Capacitor (Native uniquement)
+  const isNativeCapacitor = typeof window !== 'undefined' && (
+    (window as any).Capacitor?.isNativePlatform?.() === true ||
+    window.location.protocol === 'capacitor:'
+  );
+
+  // 2. Si déjà personnalisé par l'utilisateur
   const saved = localStorage.getItem('pani_server_url');
   if (saved) {
-    // Effacer automatiquement les anciens tunnels expirés
+    // Si l'ancienne valeur locale 192.168.1.100 ou un tunnel expiré était enregistré sur Android, basculer sur Vercel Cloud
+    if (isNativeCapacitor && (saved.includes('192.168.') || saved.includes('localhost') || EXPIRED_TUNNEL_PATTERNS.some(p => saved.includes(p)))) {
+      localStorage.removeItem('pani_server_url');
+      return 'https://pani-gestion.vercel.app/api';
+    }
     const isExpired = EXPIRED_TUNNEL_PATTERNS.some(p => saved.includes(p));
     if (isExpired) {
       localStorage.removeItem('pani_server_url');
@@ -75,19 +85,13 @@ export function getDefaultServerURL(): string {
       if (cleaned && cleaned !== saved) {
         localStorage.setItem('pani_server_url', cleaned);
       }
-      return cleaned || 'http://192.168.1.100:5000/api';
+      return cleaned || 'https://pani-gestion.vercel.app/api';
     }
   }
 
-  // 2. Détection environnement Android Capacitor (Native uniquement)
-  const isNativeCapacitor = typeof window !== 'undefined' && (
-    (window as any).Capacitor?.isNativePlatform?.() === true ||
-    window.location.protocol === 'capacitor:'
-  );
-
-  // Sur APK Android natif : pointer vers l'IP du PC serveur
+  // Sur APK Android natif : pointer par défaut vers le serveur Vercel Cloud en production
   if (isNativeCapacitor) {
-    return 'http://192.168.1.100:5000/api';
+    return 'https://pani-gestion.vercel.app/api';
   }
 
   // Sur navigateur web (PC local ou smartphone sur http://192.168.1.100:5173) :

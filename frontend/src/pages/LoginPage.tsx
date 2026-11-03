@@ -269,7 +269,7 @@ export const LoginPage: React.FC = () => {
                     setServerUrlState(e.target.value);
                     setServerTestStatus('idle');
                   }}
-                  placeholder="http://192.168.1.100:5000/api"
+                  placeholder="https://pani-gestion.vercel.app/api"
                   className="block w-full px-3 py-2 border border-slate-300 rounded-lg text-xs font-mono text-slate-900 bg-white"
                 />
 
@@ -278,19 +278,19 @@ export const LoginPage: React.FC = () => {
                   <span className="text-[10px] text-slate-400">Raccourcis :</span>
                   <button
                     type="button"
-                    onClick={() => handleSetQuickUrl('https://caps-semiconductor-hindu-endless.trycloudflare.com/api')}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 font-semibold"
+                    onClick={() => handleSetQuickUrl('https://pani-gestion.vercel.app/api')}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-semibold"
                   >
-                    <Zap className="h-3 w-3 text-sky-600" />
-                    🌐 Tunnel Cloudflare (Internet)
+                    <Zap className="h-3 w-3 text-emerald-600" />
+                    ☁️ Serveur Cloud Vercel (Recommandé)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSetQuickUrl('192.168.1.100')}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-medium"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 font-medium"
                   >
-                    <Zap className="h-3 w-3 text-emerald-600" />
-                    Wi-Fi Local (192.168.1.100)
+                    <Zap className="h-3 w-3 text-slate-500" />
+                    Wi-Fi Local PC (192.168.1.100)
                   </button>
                 </div>
 

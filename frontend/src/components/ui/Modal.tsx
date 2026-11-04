@@ -41,20 +41,27 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-5">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-5 overflow-y-auto"
+      style={{
+        paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
+        paddingTop: 'max(16px, env(safe-area-inset-top, 16px))',
+      }}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
-      {/* Modal Panel - Sheet sur mobile (bottom sheet), centré sur desktop */}
+      {/* Modal Panel - Toujours flottant et centré, aucun risque de chevauchement avec la barre de navigation Android */}
       <div
         className={`relative z-10 transform bg-white text-left shadow-2xl transition-all w-full ${maxWidthStyles[maxWidth]} border border-neutral-200 font-serif
-          rounded-t-2xl sm:rounded-xl
+          rounded-2xl sm:rounded-xl
           flex flex-col
-          max-h-[92dvh] sm:max-h-[85vh]
-          animate-in fade-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200`}
+          max-h-[86dvh] sm:max-h-[85vh]
+          my-auto
+          animate-in fade-in zoom-in-95 duration-150`}
       >
         {/* Header sticky */}
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 sm:px-5 py-3.5 bg-neutral-50/70 shrink-0 rounded-t-2xl sm:rounded-t-xl">
@@ -68,8 +75,8 @@ export const Modal: React.FC<ModalProps> = ({
           </button>
         </div>
 
-        {/* Content scrollable */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 overscroll-contain">{children}</div>
+        {/* Content scrollable avec marge inférieure confortable */}
+        <div className="p-4 sm:p-5 pb-6 sm:pb-5 overflow-y-auto flex-1 overscroll-contain">{children}</div>
       </div>
     </div>
   );

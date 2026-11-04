@@ -23,12 +23,15 @@ export const Layout: React.FC = () => {
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
 
         {/* Content Container (with generous bottom padding on mobile for the bottom nav bar) */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 pb-24 lg:pb-6">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6 pb-28 lg:pb-6">
           <Outlet />
         </main>
 
-        {/* Mobile Tactile Bottom Bar - Ergonomique, grand écran tactile, boutons faciles à cliquer */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t-2 border-slate-200 shadow-[0_-4px_24px_rgba(0,0,0,0.10)]" style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+        {/* Mobile Tactile Bottom Bar - Ergonomique, grand écran tactile, dégagé des boutons système Android */}
+        <nav
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t-2 border-slate-200 shadow-[0_-4px_24px_rgba(0,0,0,0.10)]"
+          style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom, 14px))' }}
+        >
           <div className="flex items-stretch justify-around h-16 max-w-lg mx-auto px-1">
             {/* 1. Tableau de bord */}
             <NavLink

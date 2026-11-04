@@ -116,8 +116,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           })}
         </nav>
 
-        {/* Footer info */}
-        <div className="p-3.5 bg-slate-50/60 border-t border-slate-200/80 text-[13px] font-serif text-slate-700 flex items-center justify-between shrink-0">
+        {/* Footer info avec protection barre de navigation Android */}
+        <div
+          className="p-3.5 bg-slate-50/60 border-t border-slate-200/80 text-[13px] font-serif text-slate-700 flex items-center justify-between shrink-0"
+          style={{ paddingBottom: 'max(14px, env(safe-area-inset-bottom, 14px))' }}
+        >
           <span>Devise : <strong className="text-slate-900 font-serif">FCFA</strong></span>
           <span className="text-[11px] text-emerald-700 font-bold uppercase tracking-wider">v1.0 Pro</span>
         </div>

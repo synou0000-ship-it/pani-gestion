@@ -50,11 +50,25 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
       _count: { id: true },
     });
 
-    // Encaissements de la période
-    const encaissementsAgg = await prisma.paiementClient.aggregate({
-      where: { datePaiement: { gte: debut, lte: fin } },
+    // Encaissements de la période :
+    // 1. Montants encaissés sur les ventes de la période (comptoir et avec client)
+    const totalVentesPayees = Number(ventesAgg._sum.montantPaye ?? 0);
+
+    // 2. Règlements de dettes/créances clients reçus durant cette période (non inclus dans les ventes de cette même période)
+    const reglementsDettesAgg = await prisma.paiementClient.aggregate({
+      where: {
+        datePaiement: { gte: debut, lte: fin },
+        OR: [
+          { venteId: null },
+          { vente: { dateVente: { lt: debut } } },
+        ],
+      },
       _sum: { montant: true },
     });
+    const totalReglementsDettes = Number(reglementsDettesAgg._sum.montant ?? 0);
+
+    // Total réel des encaissements (espèces perçues)
+    const totalEncaissements = totalVentesPayees + totalReglementsDettes;
 
     // Dépenses de la période
     const depensesAgg = await prisma.depense.aggregate({
@@ -106,7 +120,7 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
     });
 
     // Bénéfice estimé = ventes encaissées - coût achats - dépenses
-    const ventesEncaissees = Number(ventesAgg._sum.montantPaye ?? 0);
+    const ventesEncaissees = totalVentesPayees;
     const coutAchats = Number(achatsAgg._sum.montantTotal ?? 0);
     const totalDepenses = Number(depensesAgg._sum.montant ?? 0);
     const beneficeEstime = ventesEncaissees - coutAchats - totalDepenses;
@@ -158,12 +172,14 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
       dateFin: fin,
       ventes: {
         total: Number(ventesAgg._sum.montantTotal ?? 0),
-        montantPaye: Number(ventesAgg._sum.montantPaye ?? 0),
+        montantPaye: totalVentesPayees,
         count: ventesAgg._count.id,
         parStatut: ventesParStatut,
       },
       encaissements: {
-        total: Number(encaissementsAgg._sum.montant ?? 0),
+        total: totalEncaissements,
+        ventesPayees: totalVentesPayees,
+        reglementsDettes: totalReglementsDettes,
       },
       depenses: {
         total: Number(depensesAgg._sum.montant ?? 0),

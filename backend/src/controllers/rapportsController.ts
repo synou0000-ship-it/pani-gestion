@@ -94,9 +94,9 @@ export async function getRapportJournalier(req: Request, res: Response): Promise
       nombreVentes: ventesAgg._count.id || 0,
       chiffreAffaires: Number(ventesAgg._sum.montantTotal || 0),
       quantiteVendue: Number(venteDetails._sum.quantite || 0),
-      encaissementsVentes: Number(encaissementsAgg._sum.montant || 0),
+      encaissementsVentes: Math.max(Number(encaissementsAgg._sum.montant || 0), Number(ventesAgg._sum.montantPaye || 0)),
       paiementsDettesClients: Number(paiementsDettesClient._sum.montant || 0),
-      totalEncaissements: Number(encaissementsAgg._sum.montant || 0) + Number(paiementsDettesClient._sum.montant || 0),
+      totalEncaissements: Math.max(Number(encaissementsAgg._sum.montant || 0), Number(ventesAgg._sum.montantPaye || 0)) + Number(paiementsDettesClient._sum.montant || 0),
       totalDepenses: Number(depensesAgg._sum.montant || 0),
       nombreDepenses: depensesAgg._count.id || 0,
       caisse: caisseJour
@@ -199,7 +199,7 @@ export async function getRapportMensuel(req: Request, res: Response): Promise<vo
     const chiffreAffaires = Number(ventesAgg._sum.montantTotal || 0);
     const totalAchats = Number(achatsAgg._sum.montantTotal || 0);
     const totalDepenses = Number(depensesAgg._sum.montant || 0);
-    const encaissements = Number(encaissementsAgg._sum.montant || 0);
+    const encaissements = Math.max(Number(encaissementsAgg._sum.montant || 0), Number(ventesAgg._sum.montantPaye || 0));
 
     // Marge brute = Chiffre d'affaires - Coût d'achat des marchandises
     const margeBrute = chiffreAffaires - totalAchats;

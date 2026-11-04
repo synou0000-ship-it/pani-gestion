@@ -75,7 +75,7 @@ const mergeWithOfflineQueue = (baseData: any, p: string): any => {
 
   const baseVentesTotal = Number(baseData?.ventes?.total) || 0;
   const baseVentesCount = Number(baseData?.ventes?.count) || 0;
-  const baseEncaiss = Number(baseData?.encaissements?.total) || 0;
+  const baseEncaiss = Number(baseData?.encaissements?.total ?? baseData?.ventes?.montantPaye) || 0;
   const baseDepensesTotal = Number(baseData?.depenses?.total) || 0;
   const baseDepensesCount = Number(baseData?.depenses?.count) || 0;
 

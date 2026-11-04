@@ -443,13 +443,13 @@ export const DepensesPage: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-4 border-t border-slate-100">
             <Button
               variant="outline"
               size="md"
               type="button"
               onClick={() => setCreateModalOpen(false)}
-              className="font-serif px-4"
+              className="font-serif w-full sm:w-auto"
             >
               Annuler
             </Button>
@@ -458,9 +458,9 @@ export const DepensesPage: React.FC = () => {
               size="md"
               type="submit"
               isLoading={submitting}
-              className="font-serif font-bold px-5 shadow-sm"
+              className="font-serif font-bold w-full sm:w-auto shadow-sm"
             >
-              Enregistrer la dépense
+              ✅ Enregistrer la dépense
             </Button>
           </div>
         </form>

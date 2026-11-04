@@ -308,8 +308,8 @@ export const DashboardPage: React.FC = () => {
 
       {/* Header & Filtres Vitrine - 100% Responsive et Anti-Débordement Mobile */}
       <div className="flex flex-col gap-3 pb-2.5 border-b border-slate-200">
-        <div className="flex items-center justify-between gap-2.5">
-          <div className="min-w-0">
+        <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-slate-200">
+          <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-serif text-slate-900 tracking-tight truncate">
               Tableau de Bord
             </h1>
@@ -342,9 +342,9 @@ export const DashboardPage: React.FC = () => {
                 variant="primary"
                 size="sm"
                 icon={<PlusCircle className="h-4 w-4" />}
-                className="font-serif font-bold text-xs sm:text-sm shadow-xs whitespace-nowrap min-h-[40px] px-3.5"
+                className="font-serif font-bold text-xs sm:text-sm shadow-xs whitespace-nowrap min-h-[40px] px-2.5 sm:px-3.5"
               >
-                Nouvelle Vente
+                <span className="hidden xs:inline">Nouvelle </span>Vente
               </Button>
             </Link>
           </div>

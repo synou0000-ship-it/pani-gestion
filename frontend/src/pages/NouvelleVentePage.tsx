@@ -413,9 +413,9 @@ export const NouvelleVentePage: React.FC = () => {
                 <span className="text-[10px] text-slate-500 italic">Saisie manuelle</span>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5">
+              <div className="flex flex-col gap-2.5">
                 {/* Champ Prix unitaire */}
-                <div className="relative flex-1 min-w-0">
+                <div className="relative w-full">
                   <input
                     type="number"
                     placeholder="Montant en F CFA (ex: 2500)"
@@ -426,7 +426,7 @@ export const NouvelleVentePage: React.FC = () => {
                 </div>
 
                 {/* Sélecteur de Quantité + Bouton Ajouter */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <div className="flex items-center border border-slate-300 rounded-lg bg-slate-50 overflow-hidden shadow-2xs shrink-0">
                     <button
                       type="button"
@@ -457,9 +457,9 @@ export const NouvelleVentePage: React.FC = () => {
                   <button
                     type="button"
                     onClick={addCustomPriceToCart}
-                    className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-serif font-bold text-sm shadow-sm transition-all"
+                    className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white font-serif font-bold text-sm shadow-sm transition-all"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-4 w-4 shrink-0" />
                     <span>Ajouter</span>
                   </button>
                 </div>
@@ -773,7 +773,7 @@ export const NouvelleVentePage: React.FC = () => {
             </div>
 
             {/* Boutons d'action - Confortables et faciles à cliquer */}
-            <div className="grid grid-cols-2 gap-3 pt-3">
+            <div className="flex flex-col-reverse sm:grid sm:grid-cols-2 gap-3 pt-3">
               <Button
                 variant="outline"
                 size="md"
@@ -789,7 +789,7 @@ export const NouvelleVentePage: React.FC = () => {
                 onClick={() => setVenteReussie(null)}
                 className="w-full font-serif font-bold text-sm shadow-sm"
               >
-                Nouvelle Vente
+                ✅ Nouvelle Vente
               </Button>
             </div>
           </div>

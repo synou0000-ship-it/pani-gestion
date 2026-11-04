@@ -68,7 +68,14 @@ export async function getClients(req: Request, res: Response): Promise<void> {
       };
     });
 
-    paginatedResponse(res, clientsWithDette, total, page, limit);
+    let finalClients = clientsWithDette;
+    if (req.query.avecDette === 'true') {
+      finalClients = clientsWithDette.filter((c) => c.aDette);
+    } else if (req.query.avecDette === 'false') {
+      finalClients = clientsWithDette.filter((c) => !c.aDette);
+    }
+
+    paginatedResponse(res, finalClients, total, page, limit);
   } catch (err) {
     console.error('[Clients] getClients error:', err);
     errorResponse(res, 'Erreur lors de la récupération des clients');
@@ -396,5 +403,41 @@ export async function getReleveClient(req: Request, res: Response): Promise<void
   } catch (err) {
     console.error('[Clients] getReleveClient error:', err);
     errorResponse(res, 'Erreur lors de la génération du relevé');
+  }
+}
+
+/**
+ * Supprimer un client (soft delete)
+ */
+export async function deleteClient(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const client = await prisma.client.findUnique({
+      where: { id },
+    });
+    if (!client) {
+      errorResponse(res, 'Client introuvable', 404);
+      return;
+    }
+
+    await prisma.client.update({
+      where: { id },
+      data: { actif: false },
+    });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'DELETE_CLIENT',
+      table: 'Client',
+      enregistrementId: id,
+      anciennesValeurs: { nom: client.nom, telephone: client.telephone },
+      nouvellesValeurs: { actif: false },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, { id }, 'Client supprimé avec succès');
+  } catch (err) {
+    console.error('[Clients] deleteClient error:', err);
+    errorResponse(res, 'Erreur lors de la suppression du client');
   }
 }

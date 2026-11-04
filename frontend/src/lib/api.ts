@@ -300,6 +300,32 @@ export function clearOfflineClients(): void {
   updateLocalPendingCount();
 }
 
+export interface OfflineFournisseur {
+  localId?: number;
+  nom: string;
+  contact?: string;
+  telephone?: string;
+  adresse?: string;
+  email?: string;
+}
+
+export function saveOfflineFournisseur(fournisseur: OfflineFournisseur): void {
+  const queue: OfflineFournisseur[] = JSON.parse(localStorage.getItem('pani_offline_fournisseurs') || '[]');
+  fournisseur.localId = Date.now();
+  queue.push(fournisseur);
+  localStorage.setItem('pani_offline_fournisseurs', JSON.stringify(queue));
+  updateLocalPendingCount();
+}
+
+export function getOfflineFournisseurs(): OfflineFournisseur[] {
+  return JSON.parse(localStorage.getItem('pani_offline_fournisseurs') || '[]');
+}
+
+export function clearOfflineFournisseurs(): void {
+  localStorage.removeItem('pani_offline_fournisseurs');
+  updateLocalPendingCount();
+}
+
 export interface OfflineDepense {
   localId?: number;
   numero?: string;
@@ -370,6 +396,7 @@ export function getWebOfflinePendingCount(): number {
   return (
     getOfflineVentes().length +
     getOfflineClients().length +
+    getOfflineFournisseurs().length +
     getOfflineDepenses().length +
     getOfflineAchats().length
   );

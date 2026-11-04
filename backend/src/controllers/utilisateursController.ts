@@ -6,7 +6,22 @@ import { logAudit } from '../utils/auditLog';
 
 export async function getUtilisateurs(req: Request, res: Response): Promise<void> {
   try {
+    const where: any = {};
+    if (req.query.roleId) where.roleId = parseInt(req.query.roleId as string);
+    if (req.query.actif !== undefined && req.query.actif !== '') where.actif = req.query.actif === 'true';
+
+    if (req.query.search) {
+      const q = String(req.query.search).trim();
+      where.OR = [
+        { nom: { contains: q, mode: 'insensitive' } },
+        { prenom: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { telephone: { contains: q } },
+      ];
+    }
+
     const utilisateurs = await prisma.utilisateur.findMany({
+      where,
       select: {
         id: true,
         nom: true,
@@ -181,5 +196,45 @@ export async function updateUtilisateur(req: Request, res: Response): Promise<vo
   } catch (err) {
     console.error('[Utilisateurs] updateUtilisateur error:', err);
     errorResponse(res, 'Erreur lors de la mise à jour de l\'utilisateur');
+  }
+}
+
+/**
+ * Supprimer / désactiver un utilisateur
+ */
+export async function deleteUtilisateur(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.utilisateur.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Utilisateur introuvable', 404);
+      return;
+    }
+
+    // Empêcher la suppression du compte de l'administrateur principal
+    if (id === 1) {
+      errorResponse(res, 'Impossible de supprimer le compte administrateur principal', 400);
+      return;
+    }
+
+    await prisma.utilisateur.update({
+      where: { id },
+      data: { actif: false },
+    });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'DELETE_UTILISATEUR',
+      table: 'Utilisateur',
+      enregistrementId: id,
+      anciennesValeurs: { nom: exist.nom, email: exist.email },
+      nouvellesValeurs: { actif: false },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, { id }, 'Utilisateur désactivé avec succès');
+  } catch (err) {
+    console.error('[Utilisateurs] deleteUtilisateur error:', err);
+    errorResponse(res, 'Erreur lors de la suppression de l\'utilisateur');
   }
 }

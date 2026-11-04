@@ -212,3 +212,51 @@ export async function updateTarif(req: Request, res: Response): Promise<void> {
     errorResponse(res, 'Erreur lors de la mise à jour du tarif');
   }
 }
+
+/**
+ * Supprimer / désactiver un tarif
+ */
+export async function deleteTarif(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.tarif.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Tarif introuvable', 404);
+      return;
+    }
+
+    await prisma.tarif.update({
+      where: { id },
+      data: { actif: false },
+    });
+
+    successResponse(res, { id }, 'Tarif supprimé avec succès');
+  } catch (err) {
+    console.error('[Tarifs] deleteTarif error:', err);
+    errorResponse(res, 'Erreur lors de la suppression du tarif');
+  }
+}
+
+/**
+ * Supprimer / désactiver un produit
+ */
+export async function deleteProduit(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.produit.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Produit introuvable', 404);
+      return;
+    }
+
+    await prisma.produit.update({
+      where: { id },
+      data: { actif: false },
+    });
+
+    successResponse(res, { id }, 'Produit supprimé avec succès');
+  } catch (err) {
+    console.error('[Produits] deleteProduit error:', err);
+    errorResponse(res, 'Erreur lors de la suppression du produit');
+  }
+}

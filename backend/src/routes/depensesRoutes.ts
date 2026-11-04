@@ -7,6 +7,8 @@ import {
   getDepenses,
   getDepenseById,
   createDepense,
+  updateDepense,
+  deleteDepense,
   addJustificatif,
 } from '../controllers/depensesController';
 import { verifyToken, requireRole } from '../middleware/auth';
@@ -43,6 +45,8 @@ router.use(verifyToken);
 router.get('/', getDepenses);
 router.post('/', requireRole('Administrateur', 'Comptable', 'Gestionnaire', 'Caissier'), upload.array('justificatifs', 5), createDepense);
 router.get('/:id', getDepenseById);
+router.put('/:id', requireRole('Administrateur', 'Comptable', 'Gestionnaire'), updateDepense);
+router.delete('/:id', requireRole('Administrateur', 'Comptable', 'Gestionnaire'), deleteDepense);
 router.post('/:id/justificatif', upload.single('justificatif'), addJustificatif);
 
 export default router;

@@ -17,8 +17,19 @@ export async function getInventaires(req: Request, res: Response): Promise<void>
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
 
+    const where: Prisma.InventaireWhereInput = {};
+    if (req.query.statut) where.statut = req.query.statut as string;
+    if (req.query.search) {
+      const q = String(req.query.search).trim();
+      where.OR = [
+        { reference: { contains: q, mode: 'insensitive' } },
+        { notes: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
     const [inventaires, total] = await Promise.all([
       prisma.inventaire.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { dateInventaire: 'desc' },
@@ -31,7 +42,7 @@ export async function getInventaires(req: Request, res: Response): Promise<void>
           },
         },
       }),
-      prisma.inventaire.count(),
+      prisma.inventaire.count({ where }),
     ]);
 
     paginatedResponse(res, inventaires, total, page, limit);
@@ -205,5 +216,40 @@ export async function validerInventaire(req: Request, res: Response): Promise<vo
     console.error('[Inventaires] validerInventaire error:', err);
     const message = err instanceof Error ? err.message : 'Erreur lors de la validation';
     errorResponse(res, message, 400);
+  }
+}
+
+/**
+ * Supprimer un inventaire (non validé)
+ */
+export async function deleteInventaire(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.inventaire.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Inventaire introuvable', 404);
+      return;
+    }
+    if (exist.statut === 'valide') {
+      errorResponse(res, 'Impossible de supprimer un inventaire déjà validé', 400);
+      return;
+    }
+
+    await prisma.inventaireDetail.deleteMany({ where: { inventaireId: id } });
+    await prisma.inventaire.delete({ where: { id } });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'DELETE_INVENTAIRE',
+      table: 'Inventaire',
+      enregistrementId: id,
+      anciennesValeurs: { reference: exist.reference },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, { id }, 'Inventaire supprimé avec succès');
+  } catch (err) {
+    console.error('[Inventaires] deleteInventaire error:', err);
+    errorResponse(res, 'Erreur lors de la suppression de l\'inventaire');
   }
 }

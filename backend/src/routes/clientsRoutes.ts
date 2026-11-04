@@ -4,6 +4,7 @@ import {
   getClientById,
   createClient,
   updateClient,
+  deleteClient,
   enregistrerPaiementDette,
   getReleveClient,
 } from '../controllers/clientsController';
@@ -16,6 +17,7 @@ router.get('/', getClients);
 router.post('/', createClient);
 router.get('/:id', getClientById);
 router.put('/:id', updateClient);
+router.delete('/:id', deleteClient);
 router.post('/:id/paiements', enregistrerPaiementDette);
 router.get('/:id/releve', getReleveClient);
 

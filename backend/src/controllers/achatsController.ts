@@ -21,6 +21,14 @@ export async function getAchats(req: Request, res: Response): Promise<void> {
 
     if (req.query.fournisseurId) where.fournisseurId = parseInt(req.query.fournisseurId as string);
     if (req.query.statut) where.statut = req.query.statut as string;
+    if (req.query.search) {
+      const q = String(req.query.search).trim();
+      where.OR = [
+        { reference: { contains: q, mode: 'insensitive' } },
+        { notes: { contains: q, mode: 'insensitive' } },
+        { fournisseur: { nom: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
     if (req.query.dateDebut || req.query.dateFin) {
       where.dateAchat = {};
       if (req.query.dateDebut) where.dateAchat.gte = new Date(req.query.dateDebut as string);
@@ -305,5 +313,78 @@ export async function receptionnerAchat(req: Request, res: Response): Promise<vo
     console.error('[Achats] receptionnerAchat error:', err);
     const message = err instanceof Error ? err.message : 'Erreur lors de la réception';
     errorResponse(res, message, 400);
+  }
+}
+
+/**
+ * Annuler un achat non réceptionné
+ */
+export async function annulerAchat(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.achat.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Achat introuvable', 404);
+      return;
+    }
+    if (exist.statut === 'receptionne') {
+      errorResponse(res, 'Impossible d\'annuler un achat déjà réceptionné', 400);
+      return;
+    }
+
+    const updated = await prisma.achat.update({
+      where: { id },
+      data: { statut: 'annule' },
+    });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'ANNULER_ACHAT',
+      table: 'Achat',
+      enregistrementId: id,
+      anciennesValeurs: { statut: exist.statut },
+      nouvellesValeurs: { statut: 'annule' },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, updated, 'Achat annulé avec succès');
+  } catch (err) {
+    console.error('[Achats] annulerAchat error:', err);
+    errorResponse(res, 'Erreur lors de l\'annulation de l\'achat');
+  }
+}
+
+/**
+ * Supprimer un achat
+ */
+export async function deleteAchat(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.achat.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Achat introuvable', 404);
+      return;
+    }
+    if (exist.statut === 'receptionne') {
+      errorResponse(res, 'Impossible de supprimer un achat réceptionné avec impact de stock', 400);
+      return;
+    }
+
+    await prisma.achatDetail.deleteMany({ where: { achatId: id } });
+    await prisma.achat.delete({ where: { id } });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'DELETE_ACHAT',
+      table: 'Achat',
+      enregistrementId: id,
+      anciennesValeurs: { reference: exist.reference, montantTotal: exist.montantTotal },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, { id }, 'Achat supprimé avec succès');
+  } catch (err) {
+    console.error('[Achats] deleteAchat error:', err);
+    errorResponse(res, 'Erreur lors de la suppression de l\'achat');
   }
 }

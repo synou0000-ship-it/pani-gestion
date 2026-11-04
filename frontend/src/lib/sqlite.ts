@@ -729,6 +729,30 @@ export async function sqliteCreateLocalClient(client: {
   return res.changes?.lastId || 0;
 }
 
+// --- ENREGISTRER UN FOURNISSEUR LOCAL ---
+export async function sqliteCreateLocalFournisseur(f: {
+  nom: string;
+  contact?: string;
+  telephone?: string;
+  adresse?: string;
+  email?: string;
+}): Promise<number> {
+  if (!db) throw new Error('SQLite non disponible');
+
+  const res = await db.run(`
+    INSERT INTO fournisseurs (nom, contact, telephone, adresse, email, sync_status)
+    VALUES (?, ?, ?, ?, ?, 'pending')
+  `, [
+    f.nom,
+    f.contact || null,
+    f.telephone || null,
+    f.adresse || null,
+    f.email || null,
+  ]);
+
+  return res.changes?.lastId || 0;
+}
+
 // --- ENREGISTRER UNE DÉPENSE LOCALE ---
 export async function sqliteCreateLocalDepense(depense: {
   numero?: string;

@@ -8,6 +8,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
+import { Pagination } from '../components/ui/Pagination';
 import {
   ShoppingCart,
   PlusCircle,
@@ -16,6 +17,9 @@ import {
   Printer,
   Search,
   Filter,
+  Trash2,
+  Calendar,
+  RotateCcw,
 } from 'lucide-react';
 
 export const VentesPage: React.FC = () => {
@@ -26,8 +30,12 @@ export const VentesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [referenceSearch, setReferenceSearch] = useState('');
   const [statutFilter, setStatutFilter] = useState('');
+  const [dateDebut, setDateDebut] = useState('');
+  const [dateFin, setDateFin] = useState('');
   const [selectedVente, setSelectedVente] = useState<any>(null);
   const [annulerModalOpen, setAnnulerModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [venteToDelete, setVenteToDelete] = useState<any>(null);
   const [motifAnnulation, setMotifAnnulation] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -61,6 +69,8 @@ export const VentesPage: React.FC = () => {
       });
       if (referenceSearch) params.append('reference', referenceSearch);
       if (statutFilter) params.append('statut', statutFilter);
+      if (dateDebut) params.append('dateDebut', dateDebut);
+      if (dateFin) params.append('dateFin', dateFin);
 
       const res = await api.get(`/ventes?${params.toString()}`);
       if (res.data?.success) {
@@ -76,12 +86,20 @@ export const VentesPage: React.FC = () => {
 
   useEffect(() => {
     fetchVentes();
-  }, [page, statutFilter]);
+  }, [page, statutFilter, dateDebut, dateFin]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setPage(1);
     fetchVentes();
+  };
+
+  const handleResetFilters = () => {
+    setReferenceSearch('');
+    setStatutFilter('');
+    setDateDebut('');
+    setDateFin('');
+    setPage(1);
   };
 
   const handleAnnulerVente = async () => {
@@ -99,6 +117,23 @@ export const VentesPage: React.FC = () => {
       }
     } catch (err: any) {
       alert(err.response?.data?.message || 'Erreur lors de l\'annulation');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteVente = async () => {
+    if (!venteToDelete) return;
+    setActionLoading(true);
+    try {
+      const res = await api.delete(`/ventes/${venteToDelete.id}`);
+      if (res.data?.success) {
+        setDeleteModalOpen(false);
+        setVenteToDelete(null);
+        fetchVentes();
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Erreur lors de la suppression');
     } finally {
       setActionLoading(false);
     }
@@ -126,7 +161,7 @@ export const VentesPage: React.FC = () => {
 
       {/* Barre de Recherche et Filtres */}
       <Card className="p-3">
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2.5">
+        <form onSubmit={handleSearch} className="flex flex-col lg:flex-row gap-2.5">
           <div className="relative flex-1">
             <Search className="h-4 w-4 absolute left-3 top-2.5 text-slate-400" />
             <input
@@ -138,7 +173,7 @@ export const VentesPage: React.FC = () => {
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={statutFilter}
               onChange={(e) => {
@@ -152,9 +187,48 @@ export const VentesPage: React.FC = () => {
               <option value="annulee">Annulées</option>
             </select>
 
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+              <span className="text-[11px] text-slate-500 font-medium">Du:</span>
+              <input
+                type="date"
+                value={dateDebut}
+                onChange={(e) => {
+                  setDateDebut(e.target.value);
+                  setPage(1);
+                }}
+                className="text-xs bg-transparent border-0 p-0 focus:outline-none focus:ring-0 text-slate-700"
+              />
+            </div>
+
+            <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
+              <span className="text-[11px] text-slate-500 font-medium">Au:</span>
+              <input
+                type="date"
+                value={dateFin}
+                onChange={(e) => {
+                  setDateFin(e.target.value);
+                  setPage(1);
+                }}
+                className="text-xs bg-transparent border-0 p-0 focus:outline-none focus:ring-0 text-slate-700"
+              />
+            </div>
+
             <Button type="submit" variant="secondary" size="sm">
               Filtrer
             </Button>
+
+            {(referenceSearch || statutFilter || dateDebut || dateFin) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                icon={<RotateCcw className="h-3.5 w-3.5 text-slate-500" />}
+                className="text-xs text-slate-500 hover:text-slate-800"
+              >
+                Réinit
+              </Button>
+            )}
           </div>
         </form>
       </Card>
@@ -233,7 +307,7 @@ export const VentesPage: React.FC = () => {
                         <button
                           onClick={() => setSelectedVente(v)}
                           title="Détails de la vente"
-                          className="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded-lg"
+                          className="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition-colors"
                         >
                           <Eye className="h-4 w-4" />
                         </button>
@@ -245,9 +319,22 @@ export const VentesPage: React.FC = () => {
                               setAnnulerModalOpen(true);
                             }}
                             title="Annuler cette vente"
-                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                           >
                             <XCircle className="h-4 w-4" />
+                          </button>
+                        )}
+
+                        {hasRole('Administrateur') && (
+                          <button
+                            onClick={() => {
+                              setVenteToDelete(v);
+                              setDeleteModalOpen(true);
+                            }}
+                            title={v.statut === 'validee' ? "Annuler d'abord pour supprimer" : "Supprimer définitivement"}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         )}
                       </div>
@@ -259,28 +346,14 @@ export const VentesPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500">
-          <div>Total: <span className="font-semibold text-slate-800">{total}</span> ventes</div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-            >
-              Précédent
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={ventes.length < 15}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Suivant
-            </Button>
-          </div>
-        </div>
+        {/* Pagination Réutilisable */}
+        <Pagination
+          currentPage={page}
+          totalPages={Math.ceil(total / 15) || 1}
+          totalItems={total}
+          itemsPerPage={15}
+          onPageChange={setPage}
+        />
       </Card>
 
       {/* MODAL DÉTAILS DE LA VENTE */}
@@ -419,6 +492,55 @@ export const VentesPage: React.FC = () => {
               className="font-bold shadow-sm"
             >
               Confirmer l'annulation
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* MODAL SUPPRESSION DÉFINITIVE DE VENTE */}
+      <Modal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setVenteToDelete(null);
+        }}
+        title="Supprimer la Vente"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-700">
+            Êtes-vous sûr de vouloir supprimer définitivement la vente <strong className="font-mono text-rose-600">{venteToDelete?.reference}</strong> ?
+          </p>
+          {venteToDelete?.statut === 'validee' ? (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs text-rose-800">
+              ⚠️ <strong>Attention :</strong> Cette vente est actuellement <strong>Validée</strong>. Veuillez d'abord l'annuler pour régulariser les stocks et la caisse avant de pouvoir la purger définitivement.
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">
+              Cette action est irréversible. L'enregistrement et les lignes associées seront effacés de la base de données.
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setVenteToDelete(null);
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="danger"
+              size="md"
+              onClick={handleDeleteVente}
+              isLoading={actionLoading}
+              disabled={venteToDelete?.statut === 'validee'}
+              className="font-bold shadow-sm"
+            >
+              Supprimer définitivement
             </Button>
           </div>
         </div>

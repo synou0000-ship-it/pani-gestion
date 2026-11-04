@@ -25,6 +25,15 @@ export async function getDepenses(req: Request, res: Response): Promise<void> {
     if (req.query.sansJustificatif === 'true') where.hasJustificatif = false;
     if (req.query.modePaiement) where.modePaiement = req.query.modePaiement as string;
 
+    if (req.query.search) {
+      const q = String(req.query.search).trim();
+      where.OR = [
+        { description: { contains: q, mode: 'insensitive' } },
+        { beneficiaire: { contains: q, mode: 'insensitive' } },
+        { numero: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
     if (req.query.dateDebut || req.query.dateFin) {
       where.dateDepense = {};
       if (req.query.dateDebut) where.dateDepense.gte = new Date(req.query.dateDebut as string);
@@ -319,5 +328,99 @@ export async function addJustificatif(req: Request, res: Response): Promise<void
   } catch (err) {
     console.error('[Depenses] addJustificatif error:', err);
     errorResponse(res, 'Erreur lors de l\'ajout du justificatif');
+  }
+}
+
+/**
+ * Modifier une dépense existante
+ */
+export async function updateDepense(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const { categorie, description, montant, beneficiaire, modePaiement, hasJustificatif, justificatif } = req.body;
+
+    const exist = await prisma.depense.findUnique({ where: { id }, include: { justificatifs: true } });
+    if (!exist) {
+      errorResponse(res, 'Dépense introuvable', 404);
+      return;
+    }
+
+    const data: Prisma.DepenseUpdateInput = {};
+    if (categorie !== undefined) data.categorie = categorie;
+    if (description !== undefined) data.description = description;
+    if (montant !== undefined) data.montant = new Prisma.Decimal(montant);
+    if (beneficiaire !== undefined) data.beneficiaire = beneficiaire;
+    if (modePaiement !== undefined) data.modePaiement = modePaiement;
+    if (hasJustificatif !== undefined) data.hasJustificatif = Boolean(hasJustificatif);
+
+    const updated = await prisma.depense.update({
+      where: { id },
+      data,
+      include: { justificatifs: true, utilisateur: { select: { nom: true, prenom: true } } },
+    });
+
+    if (justificatif && (justificatif.dataUrl || justificatif.cheminFichier)) {
+      await prisma.justificatif.create({
+        data: {
+          depenseId: id,
+          nomFichier: justificatif.nomFichier || 'recu-justificatif.jpg',
+          cheminFichier: justificatif.dataUrl || justificatif.cheminFichier,
+          typeFichier: justificatif.typeFichier || 'image/jpeg',
+          tailleFichier: Number(justificatif.tailleFichier) || 1024,
+        },
+      });
+      await prisma.depense.update({ where: { id }, data: { hasJustificatif: true } });
+    }
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'UPDATE_DEPENSE',
+      table: 'Depense',
+      enregistrementId: id,
+      anciennesValeurs: { categorie: exist.categorie, montant: exist.montant, description: exist.description },
+      nouvellesValeurs: { categorie: updated.categorie, montant: updated.montant, description: updated.description },
+      adresseIp: req.ip,
+    });
+
+    const full = await prisma.depense.findUnique({
+      where: { id },
+      include: { justificatifs: true, utilisateur: { select: { nom: true, prenom: true } } },
+    });
+
+    successResponse(res, full, 'Dépense mise à jour avec succès');
+  } catch (err) {
+    console.error('[Depenses] updateDepense error:', err);
+    errorResponse(res, 'Erreur lors de la mise à jour de la dépense');
+  }
+}
+
+/**
+ * Supprimer une dépense
+ */
+export async function deleteDepense(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.depense.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Dépense introuvable', 404);
+      return;
+    }
+
+    await prisma.justificatif.deleteMany({ where: { depenseId: id } });
+    await prisma.depense.delete({ where: { id } });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'DELETE_DEPENSE',
+      table: 'Depense',
+      enregistrementId: id,
+      anciennesValeurs: { numero: exist.numero, montant: exist.montant, categorie: exist.categorie },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, { id }, 'Dépense supprimée avec succès');
+  } catch (err) {
+    console.error('[Depenses] deleteDepense error:', err);
+    errorResponse(res, 'Erreur lors de la suppression de la dépense');
   }
 }

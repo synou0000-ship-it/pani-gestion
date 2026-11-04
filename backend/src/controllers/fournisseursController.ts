@@ -61,7 +61,14 @@ export async function getFournisseurs(req: Request, res: Response): Promise<void
       };
     });
 
-    paginatedResponse(res, fournisseursWithDette, total, page, limit);
+    let finalFournisseurs = fournisseursWithDette;
+    if (req.query.avecDette === 'true') {
+      finalFournisseurs = fournisseursWithDette.filter((f) => f.aDette);
+    } else if (req.query.avecDette === 'false') {
+      finalFournisseurs = fournisseursWithDette.filter((f) => !f.aDette);
+    }
+
+    paginatedResponse(res, finalFournisseurs, total, page, limit);
   } catch (err) {
     console.error('[Fournisseurs] getFournisseurs error:', err);
     errorResponse(res, 'Erreur lors de la récupération des fournisseurs');
@@ -380,5 +387,39 @@ export async function getReleveFournisseur(req: Request, res: Response): Promise
   } catch (err) {
     console.error('[Fournisseurs] getReleveFournisseur error:', err);
     errorResponse(res, 'Erreur lors de la génération du relevé');
+  }
+}
+
+/**
+ * Supprimer un fournisseur (soft delete)
+ */
+export async function deleteFournisseur(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.fournisseur.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Fournisseur introuvable', 404);
+      return;
+    }
+
+    await prisma.fournisseur.update({
+      where: { id },
+      data: { actif: false },
+    });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'DELETE_FOURNISSEUR',
+      table: 'Fournisseur',
+      enregistrementId: id,
+      anciennesValeurs: { nom: exist.nom, telephone: exist.telephone },
+      nouvellesValeurs: { actif: false },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, { id }, 'Fournisseur supprimé avec succès');
+  } catch (err) {
+    console.error('[Fournisseurs] deleteFournisseur error:', err);
+    errorResponse(res, 'Erreur lors de la suppression du fournisseur');
   }
 }

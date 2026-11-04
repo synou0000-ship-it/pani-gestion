@@ -696,3 +696,39 @@ export async function getTicket(req: Request, res: Response): Promise<void> {
 
 }
 
+/**
+ * Supprimer une vente annulée
+ */
+export async function deleteVente(req: Request, res: Response): Promise<void> {
+  try {
+    const id = parseInt(req.params.id as any);
+    const exist = await prisma.vente.findUnique({ where: { id } });
+    if (!exist) {
+      errorResponse(res, 'Vente introuvable', 404);
+      return;
+    }
+    if (exist.statut === 'validee') {
+      errorResponse(res, 'Veuillez annuler la vente avant de la supprimer pour régulariser le stock et la caisse', 400);
+      return;
+    }
+
+    await prisma.venteDetail.deleteMany({ where: { venteId: id } });
+    await prisma.paiementClient.deleteMany({ where: { venteId: id } });
+    await prisma.vente.delete({ where: { id } });
+
+    await logAudit({
+      utilisateurId: req.user?.id,
+      action: 'DELETE_VENTE',
+      table: 'Vente',
+      enregistrementId: id,
+      anciennesValeurs: { reference: exist.reference, montantTotal: exist.montantTotal },
+      adresseIp: req.ip,
+    });
+
+    successResponse(res, { id }, 'Vente supprimée définitivement avec succès');
+  } catch (err) {
+    console.error('[Ventes] deleteVente error:', err);
+    errorResponse(res, 'Erreur lors de la suppression de la vente');
+  }
+}
+

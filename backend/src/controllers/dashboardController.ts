@@ -51,8 +51,9 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
     });
 
     // Encaissements de la période :
-    // 1. Montants encaissés sur les ventes de la période (comptoir et avec client)
-    const totalVentesPayees = Number(ventesAgg._sum.montantPaye ?? 0);
+    // On prend le montantTotal des ventes validées (ce qui a été vendu = ce qui devrait être encaissé)
+    // + les règlements de dettes clients séparés
+    const totalVentesPayees = Number(ventesAgg._sum.montantTotal ?? 0);
 
     // 2. Règlements de dettes/créances clients reçus durant cette période (non inclus dans les ventes de cette même période)
     const reglementsDettesAgg = await prisma.paiementClient.aggregate({
@@ -160,8 +161,8 @@ export async function getDashboard(req: Request, res: Response): Promise<void> {
         return {
           produitId: tp.produitId,
           nom: produit?.nom ?? 'Inconnu',
-          quantite: Number(tp._sum.quantite ?? 0),
-          montant: Number(tp._sum.montant ?? 0),
+          totalVendu: Number(tp._sum.quantite ?? 0),
+          chiffreAffaires: Number(tp._sum.montant ?? 0),
         };
       })
     );

@@ -80,9 +80,22 @@ export async function getDepenseById(req: Request, res: Response): Promise<void>
   }
 }
 
+/**
+ * Crée une dépense. Accepte:
+ *   - JSON pur avec `justificatif: { dataUrl, nomFichier, typeFichier, tailleFichier }` (mobile + web)
+ *   - multipart/form-data avec fichier binaire via multer (upload classique)
+ *   - `hasJustificatif: true` si le frontend signale un justificatif déjà traité
+ */
 export async function createDepense(req: Request, res: Response): Promise<void> {
   try {
-    const { categorie, description, montant, modePaiement = 'especes', beneficiaire, notes } = req.body;
+    const {
+      categorie,
+      description,
+      montant,
+      modePaiement = 'especes',
+      beneficiaire,
+      notes,
+    } = req.body;
 
     if (!categorie || !description || !montant || Number(montant) <= 0) {
       errorResponse(res, 'Catégorie, description et montant > 0 obligatoires', 400);
@@ -92,8 +105,28 @@ export async function createDepense(req: Request, res: Response): Promise<void> 
     const numero = generateNumeroDepense();
     const montantNum = Number(montant);
     const utilisateurId = req.user!.id;
-    const files = req.files as Express.Multer.File[] | undefined;
-    const hasFiles = Boolean(files && files.length > 0);
+
+    // --- Détection du justificatif ---
+    // 1. Via multer (multipart file upload classique)
+    const multerFiles = (req.files as Express.Multer.File[]) || [];
+    const hasMulterFiles = multerFiles.length > 0;
+
+    // 2. Via JSON payload (Base64 DataURL — mobile et PC)
+    const jsonJustif = req.body.justificatif
+      ? (typeof req.body.justificatif === 'string' ? JSON.parse(req.body.justificatif) : req.body.justificatif)
+      : null;
+    const jsonJustifs: any[] = req.body.justificatifs
+      ? (typeof req.body.justificatifs === 'string' ? JSON.parse(req.body.justificatifs) : req.body.justificatifs)
+      : [];
+    const hasJsonJustif = Boolean(
+      (jsonJustif && (jsonJustif.dataUrl || jsonJustif.cheminFichier)) ||
+      (Array.isArray(jsonJustifs) && jsonJustifs.some((j: any) => j && (j.dataUrl || j.cheminFichier)))
+    );
+
+    // 3. Flag explicite (hasJustificatif=true envoyé par le client)
+    const clientFlag = req.body.hasJustificatif === true || req.body.hasJustificatif === 'true';
+
+    const hasFiles = hasMulterFiles || hasJsonJustif || clientFlag;
 
     const depense = await prisma.$transaction(async (tx) => {
       let mouvementCaisseId: number | null = null;
@@ -142,26 +175,60 @@ export async function createDepense(req: Request, res: Response): Promise<void> 
           description,
           montant: new Prisma.Decimal(montantNum),
           modePaiement,
-          beneficiaire: beneficiaire ? beneficiaire.trim() : null,
+          beneficiaire: beneficiaire ? String(beneficiaire).trim() : null,
           notes: notes || null,
           hasJustificatif: hasFiles,
           mouvementCaisseId,
         },
       });
 
-      // Justificatifs joints
-      if (files && files.length > 0) {
-        for (const file of files) {
+      // --- Enregistrement des justificatifs JSON Base64 ---
+      if (jsonJustif && (jsonJustif.dataUrl || jsonJustif.cheminFichier)) {
+        await tx.justificatif.create({
+          data: {
+            depenseId: nouvelleDepense.id,
+            nomFichier: jsonJustif.nomFichier || 'reçu-justificatif.jpg',
+            cheminFichier: jsonJustif.dataUrl || jsonJustif.cheminFichier,
+            typeFichier: jsonJustif.typeFichier || 'image/jpeg',
+            tailleFichier: Number(jsonJustif.tailleFichier) || String(jsonJustif.dataUrl || '').length,
+          },
+        });
+      }
+
+      for (const j of jsonJustifs) {
+        if (j && (j.dataUrl || j.cheminFichier)) {
           await tx.justificatif.create({
             data: {
               depenseId: nouvelleDepense.id,
-              nomFichier: file.originalname,
-              cheminFichier: file.path,
-              typeFichier: file.mimetype,
-              tailleFichier: file.size,
+              nomFichier: j.nomFichier || 'reçu-justificatif.jpg',
+              cheminFichier: j.dataUrl || j.cheminFichier,
+              typeFichier: j.typeFichier || 'image/jpeg',
+              tailleFichier: Number(j.tailleFichier) || String(j.dataUrl || '').length,
             },
           });
         }
+      }
+
+      // --- Enregistrement des fichiers Multer (multipart) ---
+      for (const file of multerFiles) {
+        // Convertir en Base64 pour persistance (fichiers Vercel tmpdir éphémères)
+        let chemin = file.path;
+        try {
+          if (fs.existsSync(file.path)) {
+            const buffer = fs.readFileSync(file.path);
+            chemin = `data:${file.mimetype};base64,${buffer.toString('base64')}`;
+          }
+        } catch (_) {}
+
+        await tx.justificatif.create({
+          data: {
+            depenseId: nouvelleDepense.id,
+            nomFichier: file.originalname,
+            cheminFichier: chemin,
+            typeFichier: file.mimetype,
+            tailleFichier: file.size,
+          },
+        });
       }
 
       return nouvelleDepense;
@@ -189,15 +256,13 @@ export async function createDepense(req: Request, res: Response): Promise<void> 
   }
 }
 
+/**
+ * Ajoute un justificatif à une dépense existante.
+ * Accepte: fichier binaire Multer OU payload JSON {dataUrl, nomFichier, ...}
+ */
 export async function addJustificatif(req: Request, res: Response): Promise<void> {
   try {
     const id = parseInt(req.params.id as any);
-    const file = req.file;
-
-    if (!file) {
-      errorResponse(res, 'Fichier manquant', 400);
-      return;
-    }
 
     const depense = await prisma.depense.findUnique({ where: { id } });
     if (!depense) {
@@ -205,16 +270,46 @@ export async function addJustificatif(req: Request, res: Response): Promise<void
       return;
     }
 
+    const file = req.file;
+    const { nomFichier, dataUrl, typeFichier, tailleFichier } = req.body;
+
+    let finalNom = nomFichier || 'reçu-justificatif.jpg';
+    let finalChemin = dataUrl || '';
+    let finalType = typeFichier || 'image/jpeg';
+    let finalTaille = Number(tailleFichier) || 0;
+
+    if (file) {
+      finalNom = file.originalname;
+      finalType = file.mimetype;
+      finalTaille = file.size;
+      try {
+        if (fs.existsSync(file.path)) {
+          const buffer = fs.readFileSync(file.path);
+          finalChemin = `data:${file.mimetype};base64,${buffer.toString('base64')}`;
+        } else {
+          finalChemin = file.path;
+        }
+      } catch (_) {
+        finalChemin = file.path;
+      }
+    }
+
+    if (!finalChemin) {
+      errorResponse(res, 'Fichier ou données du justificatif manquants', 400);
+      return;
+    }
+
     const justificatif = await prisma.justificatif.create({
       data: {
         depenseId: id,
-        nomFichier: file.originalname,
-        cheminFichier: file.path,
-        typeFichier: file.mimetype,
-        tailleFichier: file.size,
+        nomFichier: finalNom,
+        cheminFichier: finalChemin,
+        typeFichier: finalType,
+        tailleFichier: finalTaille || finalChemin.length,
       },
     });
 
+    // Marquer la dépense comme justifiée
     await prisma.depense.update({
       where: { id },
       data: { hasJustificatif: true },

@@ -589,6 +589,7 @@ export async function sqliteUpsertDepense(d: any): Promise<void> {
       mode_paiement = excluded.mode_paiement,
       beneficiaire = excluded.beneficiaire,
       notes = excluded.notes,
+      has_justificatif = excluded.has_justificatif,
       updated_at = excluded.updated_at,
       sync_status = 'synced';
   `;
@@ -739,15 +740,18 @@ export async function sqliteCreateLocalDepense(depense: {
   beneficiaire?: string;
   dateDepense?: string;
   notes?: string;
+  hasJustificatif?: boolean;
+  justificatif?: { dataUrl: string; nomFichier: string; typeFichier: string; tailleFichier: number };
 }): Promise<number> {
   if (!db) throw new Error('SQLite non disponible');
 
   const num = depense.numero || `DEP-MOB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   const nowIso = depense.dateDepense || new Date().toISOString();
+  const hasJustif = depense.hasJustificatif ? 1 : (depense.justificatif ? 1 : 0);
 
   const res = await db.run(`
-    INSERT INTO depenses (numero, utilisateur_id, categorie, description, montant, mode_paiement, beneficiaire, date_depense, notes, sync_status, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    INSERT INTO depenses (numero, utilisateur_id, categorie, description, montant, mode_paiement, beneficiaire, date_depense, notes, has_justificatif, sync_status, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
   `, [
     num,
     depense.utilisateurId || 1,
@@ -758,6 +762,7 @@ export async function sqliteCreateLocalDepense(depense: {
     depense.beneficiaire || null,
     nowIso,
     depense.notes || null,
+    hasJustif,
     nowIso,
     nowIso
   ]);
@@ -870,7 +875,9 @@ export async function sqliteGetPendingItems(): Promise<{
       montant: d.montant,
       modePaiement: d.mode_paiement,
       beneficiaire: d.beneficiaire,
-      notes: d.notes
+      notes: d.notes,
+      hasJustificatif: Boolean(d.has_justificatif),
+      dateDepense: d.date_depense,
     })),
     achats: achatsWithDetails
   };

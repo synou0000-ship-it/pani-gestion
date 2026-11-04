@@ -90,6 +90,15 @@ export const DepensesPage: React.FC = () => {
     fetchDepenses();
   }, [sansJustifFilter, categorieFilter]);
 
+  // Convertit un File en DataURL (Base64) — fonctionne sur mobile et PC
+  const fileToDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
   const handleCreateDepense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description || !montant) return;
@@ -97,15 +106,34 @@ export const DepensesPage: React.FC = () => {
     setSubmitting(true);
     setErrorMsg(null);
 
-    const depenseData = {
+    // Préparer le justificatif en Base64 si un fichier est sélectionné
+    let justificatifPayload: { dataUrl: string; nomFichier: string; typeFichier: string; tailleFichier: number } | null = null;
+    if (files && files.length > 0) {
+      try {
+        const file = files[0];
+        const dataUrl = await fileToDataUrl(file);
+        justificatifPayload = {
+          dataUrl,
+          nomFichier: file.name,
+          typeFichier: file.type,
+          tailleFichier: file.size,
+        };
+      } catch (_) {
+        // Si la lecture échoue, on continue sans justificatif
+      }
+    }
+
+    const depenseData: any = {
       categorie,
       description,
       montant: Number(montant),
       modePaiement,
       beneficiaire,
+      hasJustificatif: Boolean(justificatifPayload),
+      ...(justificatifPayload ? { justificatif: justificatifPayload } : {}),
     };
 
-    // 1. TENTER L'API EN PREMIER (envoi JSON direct, plus fiable)
+    // 1. TENTER L'API EN PREMIER (envoi JSON avec justificatif Base64 intégré)
     try {
       const res = await api.post('/depenses', depenseData);
       if (res.data?.success) {
@@ -121,12 +149,13 @@ export const DepensesPage: React.FC = () => {
       const isOfflineErr = !err.response || err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK';
       if (isOfflineErr) {
         // Mode hors-ligne : enregistrement local
+        const localData = { ...depenseData };
         if (isSQLiteAvailable()) {
           try {
-            await sqliteCreateLocalDepense(depenseData);
+            await sqliteCreateLocalDepense(localData);
           } catch (_) {}
         } else {
-          saveOfflineDepense(depenseData);
+          saveOfflineDepense(localData);
         }
         setCreateModalOpen(false);
         setDescription('');
@@ -367,18 +396,51 @@ export const DepensesPage: React.FC = () => {
 
           {/* Justificatif photo / PDF */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
               Justificatif (Photo de reçu ou document PDF)
             </label>
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              onChange={(e) => setFiles(e.target.files)}
-              className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200"
-            />
-            <p className="text-[11px] text-slate-400 mt-1">
-              Recommandé pour éviter le signalement de dépense sans justificatif.
-            </p>
+            <label className={`flex items-center gap-3 w-full p-3 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${files && files.length > 0 ? 'border-emerald-400 bg-emerald-50' : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'}`}>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(e) => setFiles(e.target.files)}
+                className="hidden"
+              />
+              {files && files.length > 0 ? (
+                <>
+                  <div className="p-2 bg-emerald-100 rounded-lg shrink-0">
+                    <Paperclip className="h-4 w-4 text-emerald-600" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-emerald-700 truncate">{files[0].name}</div>
+                    <div className="text-[10px] text-emerald-600">
+                      {(files[0].size / 1024).toFixed(0)} Ko — ✅ Justificatif prêt à l'envoi
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFiles(null); }}
+                    className="text-slate-400 hover:text-rose-500 shrink-0 text-xs font-bold px-1"
+                  >✕</button>
+                </>
+              ) : (
+                <>
+                  <div className="p-2 bg-slate-100 rounded-lg shrink-0">
+                    <Upload className="h-4 w-4 text-slate-500" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-slate-600">Choisir un fichier</div>
+                    <div className="text-[10px] text-slate-400">Photo, scan ou PDF du reçu</div>
+                  </div>
+                </>
+              )}
+            </label>
+            {(!files || files.length === 0) && (
+              <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                Sans justificatif, la dépense sera signalée comme non justifiée.
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
